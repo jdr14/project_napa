@@ -1,44 +1,24 @@
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <fcntl.h> // Need for fd flags
 #include <sys/mman.h> // mmap() defined in this header
 #include <unistd.h> // Need to close fd and for sleep function
-// #include <wiringPi.h>
 
-/**************************
-*
-* Note this code is written for the Raspberry Pi which uses the BCM2711 SOC
-* 
-* See section 5.2 of the BCM2711 data sheet at 
-* https://datasheets.raspberrypi.com/bcm2711/bcm2711-peripherals.pdf
-* 
-**************************/
-#define GPIO_REG_BASE_ADDRESS (0x7e200000)  // GPIO base address
-#define GPIO_REG_SIZE (4) // The GPIO has the following 4 byte (32 bit) registers
-
-#define OFFSET_GPFSEL0 (0x00)  // GPIO Function Select 0 (gpio 9 -> 0)
-#define OFFSET_GPFSEL1 (0x04)  // GPIO Function Select 1 (gpio 19 -> 10)
-#define OFFSET_GPFSEL2 (0x08)  // GPIO Function Select 2 (gpio 29 -> 20)
-#define OFFSET_GPFSEL3 (0x0c)  // GPIO Function Select 3
-#define OFFSET_GPFSEL4 (0x10)  // GPIO Function Select 4
-#define OFFSET_GPFSEL5 (0x14)  // GPIO Function Select 5
+#include "BCM2711_ARM_GPIO.h"
 
 // These help with the bit shifting and arithmetic to properly modify the correct GPIO later in the program
 #define FSEL_NUM_BITS (3)
 #define GPIO_PINS_PER_REG (10)
 
-#define OFFSET_GPSET0 (0x1c)  // GPIO Pin Output Set 0
-#define OFFSET_GPSET1 (0x20)  // GPIO Pin Output Set 1 
-
-#define OFFSET_CLR0 (0x28)  // Register to clear GPIOs
-#define OFFSET_CLR1 (0x2c)  // Register to clear GPIOs
-// etc...
-
-#define GPIO_PUP_PDN_CNTRL_REG3 (0xf0) // GPIO Pull-up/Pull-down Register 3
-
+/**************************
+*
+* Note this code is written for the RPi 4 which uses the BCM2711 SOC
+* 
+* See section 5.2 of the BCM2711 data sheet at 
+* https://datasheets.raspberrypi.com/bcm2711/bcm2711-peripherals.pdf
+* 
+**************************/
 int handle_error(char * msg) {
     perror(msg); 
     return EXIT_FAILURE;
@@ -98,6 +78,10 @@ int main()
 
         blink_count++;
     } while(blink_count < 5); // only blink 5 times, then exit
+
+    // One last clear...
+    printf("\nSetting GPIO %i low with \'off\' register index %i", gpio_pin, clr_reg_index);
+    gpios[clr_reg_index] = (1 << gpio_pin); // Set GPIO bit to high in the clr register to clear
 
     // Don't forget to unmap and close the gpiomem file descriptor
     munmap(gpio_reg_map, GPIO_PUP_PDN_CNTRL_REG3); // Use the offset for the last GPIO register in the block as the size
