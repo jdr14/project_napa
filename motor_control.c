@@ -36,7 +36,7 @@ int handle_error(char * msg) {
     return EXIT_FAILURE;
 }
 
-int get_gpio_virtual_mem_block(volatile uint32_t * gpios) {
+int get_gpio_virtual_mem_block(void * gpio_reg_map) {
     // In the filesystem we have /dev/gpiomem which is the block of physical memory we need to map
     // Man page: https://man7.org/linux/man-pages/man2/open.2.html 
     int gpiomem_fd = open("/dev/gpiomem", O_RDWR | O_SYNC);
@@ -46,7 +46,7 @@ int get_gpio_virtual_mem_block(volatile uint32_t * gpios) {
 
     // mmap() syscall creates a new mapping in the virtual address space of the calling process
     // Man page: https://man7.org/linux/man-pages/man2/mmap.2.html
-    void * gpio_reg_map = (void *)mmap(
+    gpio_reg_map = (void *)mmap(
         NULL,                    // Allow kernel to decide the virtual base address
         GPIO_PUP_PDN_CNTRL_REG3, // This is the last register in the GPIO memory block
         PROT_READ | PROT_WRITE,  // Enable read and write access
@@ -59,7 +59,7 @@ int get_gpio_virtual_mem_block(volatile uint32_t * gpios) {
     }
 
     // Type cast gpio mem to volatile since GPIO state is not guarunteed
-    gpios = (volatile uint32_t *)gpio_reg_map;
+    // gpios = (volatile uint32_t *)gpio_reg_map;
     return gpiomem_fd;
 }
 
@@ -104,23 +104,25 @@ void moveLeftSideBackward(volatile uint32_t * gpios) {
 
 int main() 
 {
-    volatile uint32_t gpios;
-    int gpiomem_fd = get_gpio_virtual_mem_block(&gpios);
-    init_gpio_pins(&gpios);
+    
+    void * gpio_reg_map;
+    int gpiomem_fd = get_gpio_virtual_mem_block(gpio_reg_map);
+    volatile uint32_t * gpios = (volatile uint32_t *)gpio_reg_map;
+    init_gpio_pins(gpios);
 
     // Test...
     uint32_t count = 0;
     do {
-        moveForward(&gpios);
+        moveLeftSideForward(gpios);
         sleep(1);
-        stop(&gpios);
+        stop(gpios);
         sleep(1);
-        moveBackward(&gpios);
+        moveLeftSideBackward(gpios);
         sleep(1);
         count++;
     } while (count < 3);
 
-    munmap(&gpios, GPIO_PUP_PDN_CNTRL_REG3);
+    munmap(gpio_reg_map, GPIO_PUP_PDN_CNTRL_REG3);
     close(gpiomem_fd);
     printf("\n");
 
