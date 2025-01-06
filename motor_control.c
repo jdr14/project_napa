@@ -19,11 +19,17 @@
 #define FL_MOTOR_PIN_A (22)
 #define FL_MOTOR_PIN_B (23)
 
-// Define the Register index they correspond to
+// Define the Register Index which will be used to set the motor pins to output
 #define BL_RI_PIN_A (BL_MOTOR_PIN_A / GPIO_PINS_PER_REG)
 #define BL_RI_PIN_B (BL_MOTOR_PIN_B / GPIO_PINS_PER_REG)
 #define FL_RI_PIN_A (FL_MOTOR_PIN_A / GPIO_PINS_PER_REG)
 #define FL_RI_PIN_B (FL_MOTOR_PIN_B / GPIO_PINS_PER_REG)
+
+// This Register will be used to set the pin high
+#define GPIO_SET_REG (OFFSET_GPFSEL0 / GPIO_REG_SIZE)
+
+// This Register will be used to set the pin low
+#define GPIO_CLR_REG (OFFSET_CLR0 / GPIO_REG_SIZE)
 
 int handle_error(char * msg) {
     perror(msg); 
@@ -70,19 +76,30 @@ int init_gpio_pins(volatile uint32_t * gpios) {
 }
 
 void moveLeftSideForward(volatile uint32_t * gpios) {
-    // gpios
+    printf("\nMoving Left Side Forward...");
+    gpios[GPIO_SET_REG] = (1 << BL_MOTOR_PIN_A); // Back left motor
+    gpios[GPIO_CLR_REG] = (1 << BL_MOTOR_PIN_B);
+
+    gpios[GPIO_SET_REG] = (1 << FL_MOTOR_PIN_A); // Front left motor
+    gpios[GPIO_CLR_REG] = (1 << FL_MOTOR_PIN_B);
 }
 
 void stop(volatile uint32_t * gpios) {
-    // printf("\nStopping Left Side");
-    // gpios[BL_RI_PIN_A] = (1 << BL_MOTOR_PIN_A); // Set GPIO bit to high in the clr register to clear
-    // sleep(1); // Sleep 1s
-    // gpios[BL_RI_PIN_B] = (1 << BL_MOTOR_PIN_B);
+    printf("\nStopping Left Side Drive Train...");
+    gpios[GPIO_CLR_REG] = (1 << BL_MOTOR_PIN_A); // Back left motor
+    gpios[GPIO_CLR_REG] = (1 << BL_MOTOR_PIN_B);
 
+    gpios[GPIO_CLR_REG] = (1 << FL_MOTOR_PIN_A); // Front left motor
+    gpios[GPIO_CLR_REG] = (1 << FL_MOTOR_PIN_B);
 }
 
 void moveLeftSideBackward(volatile uint32_t * gpios) {
+    printf("\nMoving Left Side Backward...");
+    gpios[GPIO_SET_REG] = (1 << BL_MOTOR_PIN_A); // Back left motor
+    gpios[GPIO_CLR_REG] = (1 << BL_MOTOR_PIN_B);
 
+    gpios[GPIO_SET_REG] = (1 << FL_MOTOR_PIN_A); // Front left motor
+    gpios[GPIO_CLR_REG] = (1 << FL_MOTOR_PIN_B);
 }
 
 int main() 
@@ -103,7 +120,7 @@ int main()
         count++;
     } while (count < 3);
 
-    // munmap()
+    munmap(&gpios, GPIO_PUP_PDN_CNTRL_REG3);
     close(gpiomem_fd);
     printf("\n");
 
