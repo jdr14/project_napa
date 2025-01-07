@@ -25,8 +25,14 @@
 #define FL_RI_PIN_A (FL_MOTOR_PIN_A / GPIO_PINS_PER_REG)
 #define FL_RI_PIN_B (FL_MOTOR_PIN_B / GPIO_PINS_PER_REG)
 
+// Define the register set shifts
+#define BL_SHIFT_A ((BL_MOTOR_PIN_A % GPIO_PINS_PER_REG) * FSEL_NUM_BITS)
+#define BL_SHIFT_B ((BL_MOTOR_PIN_B % GPIO_PINS_PER_REG) * FSEL_NUM_BITS)
+#define FL_SHIFT_A ((FL_MOTOR_PIN_A % GPIO_PINS_PER_REG) * FSEL_NUM_BITS)
+#define FL_SHIFT_B ((FL_MOTOR_PIN_B % GPIO_PINS_PER_REG) * FSEL_NUM_BITS)
+
 // This Register will be used to set the pin high
-#define GPIO_SET_REG (OFFSET_GPFSEL0 / GPIO_REG_SIZE)
+#define GPIO_SET_REG (OFFSET_GPSET0 / GPIO_REG_SIZE)
 
 // This Register will be used to set the pin low
 #define GPIO_CLR_REG (OFFSET_CLR0 / GPIO_REG_SIZE)
@@ -91,28 +97,24 @@ int main()
 
     printf("\nClearing and initializing all motor GPIOs to output:");
     // Setup BL motor pin A
-    uint32_t fsel_shift = (BL_MOTOR_PIN_A % GPIO_PINS_PER_REG) * FSEL_NUM_BITS;
-    printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)BL_RI_PIN_A, fsel_shift);
-    gpios[BL_RI_PIN_A] &= (0b000 << fsel_shift); // Clear current function by forcing bits to 000
-    gpios[BL_RI_PIN_A] |= (0b001 << fsel_shift); // Change GPIO to an output
+    printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)BL_RI_PIN_A, BL_SHIFT_A);
+    gpios[BL_RI_PIN_A] &= (0b000 << BL_SHIFT_A); // Clear current function by forcing bits to 000
+    gpios[BL_RI_PIN_A] |= (0b001 << BL_SHIFT_A); // Change GPIO to an output
 
     // Setup BL motor pin B
-    fsel_shift = (BL_MOTOR_PIN_B % GPIO_PINS_PER_REG) * FSEL_NUM_BITS;
-    printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)BL_RI_PIN_B, fsel_shift);
-    gpios[BL_RI_PIN_B] &= (0b000 << fsel_shift); // Clear current function by forcing bits to 000
-    gpios[BL_RI_PIN_B] |= (0b001 << fsel_shift); // Change GPIO to an output
+    printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)BL_RI_PIN_B, BL_SHIFT_B);
+    gpios[BL_RI_PIN_B] &= (0b000 << BL_SHIFT_B); // Clear current function by forcing bits to 000
+    gpios[BL_RI_PIN_B] |= (0b001 << BL_SHIFT_B); // Change GPIO to an output
 
     // Setup BL motor pin B
-    fsel_shift = (FL_MOTOR_PIN_A % GPIO_PINS_PER_REG) * FSEL_NUM_BITS;
-    printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)FL_RI_PIN_A, fsel_shift);
-    gpios[FL_RI_PIN_A] &= (0b000 << fsel_shift); // Clear current function by forcing bits to 000
-    gpios[FL_RI_PIN_A] |= (0b001 << fsel_shift); // Change GPIO to an output
+    printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)FL_RI_PIN_A, FL_SHIFT_A);
+    gpios[FL_RI_PIN_A] &= (0b000 << FL_SHIFT_A); // Clear current function by forcing bits to 000
+    gpios[FL_RI_PIN_A] |= (0b001 << FL_SHIFT_A); // Change GPIO to an output
 
     // Setup BL motor pin B
-    fsel_shift = (FL_MOTOR_PIN_B % GPIO_PINS_PER_REG) * FSEL_NUM_BITS;
-    printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)FL_RI_PIN_B, fsel_shift);
-    gpios[FL_RI_PIN_B] &= (0b000 << fsel_shift); // Clear current function by forcing bits to 000
-    gpios[FL_RI_PIN_B] |= (0b001 << fsel_shift); // Change GPIO to an output
+    printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)FL_RI_PIN_B, FL_SHIFT_B);
+    gpios[FL_RI_PIN_B] &= (0b000 << FL_SHIFT_B); // Clear current function by forcing bits to 000
+    gpios[FL_RI_PIN_B] |= (0b001 << FL_SHIFT_B); // Change GPIO to an output
 
     printf("\nUsing GPIO_SET_REG %i", GPIO_SET_REG);
     printf("\nUsing GPIO_CLR_REG %i", GPIO_CLR_REG);
