@@ -10,14 +10,14 @@
 #define SUCCESS (0)
 
 // These help with the bit shifting and arithmetic to properly modify the correct GPIO later in the program
-#define FSEL_NUM_BITS (3U)
-#define GPIO_PINS_PER_REG (10U)
+#define FSEL_NUM_BITS (3)
+#define GPIO_PINS_PER_REG (10)
 
 // These are the pins corresponding to the left side drive train
-#define BL_MOTOR_PIN_A (17U)
-#define BL_MOTOR_PIN_B (27U)
-#define FL_MOTOR_PIN_A (22U)
-#define FL_MOTOR_PIN_B (23U)
+#define BL_MOTOR_PIN_A (17)
+#define BL_MOTOR_PIN_B (22)
+#define FL_MOTOR_PIN_A (23)
+#define FL_MOTOR_PIN_B (24)
 
 // Define the Register Index which will be used to set the motor pins to output
 #define BL_RI_PIN_A (BL_MOTOR_PIN_A / GPIO_PINS_PER_REG)
@@ -98,14 +98,24 @@ int main()
     printf("\nClearing and initializing all motor GPIOs to output:");
     // Setup BL motor pin A
     printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)BL_RI_PIN_A, BL_SHIFT_A);
-    gpios[BL_RI_PIN_A] &= (0b000 << BL_SHIFT_A); // Clear current function by forcing bits to 000
-    gpios[BL_RI_PIN_A] |= (0b001 << BL_SHIFT_A); // Change GPIO to an output
+    static uint32_t set_bl_pina_gpio_output_mask = (0x0 | (1 << BL_SHIFT_A));
+    // gpios[BL_RI_PIN_A] &= (0b000 << BL_SHIFT_A); // Clear current function by forcing bits to 000
+    // gpios[BL_RI_PIN_A] |= (0b001 << BL_SHIFT_A); // Change GPIO to an output
+    gpios[BL_RI_PIN_A] = set_bl_pina_gpio_output_mask;
+
+    sleep(1);
 
     // Setup BL motor pin B
     printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)BL_RI_PIN_B, BL_SHIFT_B);
-    gpios[BL_RI_PIN_B] &= (0b000 << BL_SHIFT_B); // Clear current function by forcing bits to 000
-    gpios[BL_RI_PIN_B] |= (0b001 << BL_SHIFT_B); // Change GPIO to an output
+    static uint32_t set_bl_pinb_gpio_output_mask = (0x0 | (1 << BL_SHIFT_B));
+    // gpios[BL_RI_PIN_B] &= (0b000 << BL_SHIFT_B); // Clear current function by forcing bits to 000
+    // gpios[BL_RI_PIN_B] |= (0b001 << BL_SHIFT_B); // Change GPIO to an output
+    gpios[BL_RI_PIN_B] = set_bl_pinb_gpio_output_mask;
 
+    // printf("base address: 0x%0x\n", gpios);
+    // printf("GPFSEL1 address: 0x%0x\n", gpios[1]);
+    // printf("GPFSEL2 address: 0x%0x\n", gpios[2]);
+/*
     // Setup BL motor pin B
     printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)FL_RI_PIN_A, FL_SHIFT_A);
     gpios[FL_RI_PIN_A] &= (0b000 << FL_SHIFT_A); // Clear current function by forcing bits to 000
@@ -118,7 +128,7 @@ int main()
 
     printf("\nUsing GPIO_SET_REG %i", GPIO_SET_REG);
     printf("\nUsing GPIO_CLR_REG %i", GPIO_CLR_REG);
-
+*/
     // Test...
     uint32_t count = 0;
     do {
@@ -128,41 +138,44 @@ int main()
         static uint32_t ldtf_clr_mask = (0x0 | (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_B));
         printf("\n\tUsing set_mask = %i", ldtf_set_mask);
         printf("\n\tUsing clr_mask = %i", ldtf_clr_mask);
-        gpios[(uint32_t)GPIO_CLR_REG] = ldtf_clr_mask; // (1 << BL_MOTOR_PIN_B);
-        gpios[(uint32_t)GPIO_SET_REG] = ldtf_set_mask; //(1 << BL_MOTOR_PIN_A); // Back left motor
-        
+        // sleep(1);
+        // gpios[GPIO_CLR_REG] = ldtf_clr_mask; // (1 << BL_MOTOR_PIN_B);
+        // gpios[GPIO_SET_REG] = ldtf_set_mask; //(1 << BL_MOTOR_PIN_A); // Back left motor
+
         // gpios[(uint32_t)GPIO_SET_REG] |= (1 << FL_MOTOR_PIN_A); // Front left motor
         // gpios[(uint32_t)GPIO_CLR_REG] =  (1 << FL_MOTOR_PIN_B);
 
-        sleep(1);
+        // sleep(1);
 
         // stop(gpios)
-        printf("\nStopping Left Side Drive Train...");
-        static uint32_t ld_stop_mask = (0x0 | (1 << BL_MOTOR_PIN_A) | (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_B));
-        printf("\n\tUsing stop_mask = %i", ld_stop_mask);
-        gpios[(uint32_t)GPIO_CLR_REG] = ld_stop_mask; // (1 << BL_MOTOR_PIN_A); // Back left motor
+        // printf("\nStopping Left Side Drive Train...");
+        // static uint32_t ld_stop_mask = (0x0 | (1 << BL_MOTOR_PIN_A) | (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_B));
+        // printf("\n\tUsing stop_mask = %i", ld_stop_mask);
+        // sleep(1);
+        // gpios[GPIO_CLR_REG] = ld_stop_mask; // (1 << BL_MOTOR_PIN_A); // Back left motor
         // gpios[(uint32_t)GPIO_CLR_REG] = (1 << BL_MOTOR_PIN_B);
-    
+
         // gpios[(uint32_t)GPIO_CLR_REG] = (1 << FL_MOTOR_PIN_A); // Front left motor
         // gpios[(uint32_t)GPIO_CLR_REG] = (1 << FL_MOTOR_PIN_B);
 
-        sleep(1);
-        
+        // sleep(1);
+
         // moveLeftSideBackward(gpios);
-        printf("\nMoving Left Side Backward...");
-        static uint32_t ldtb_set_mask = (0x0 | (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_B));
-        static uint32_t ldtb_clr_mask = (0x0 | (1 << BL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_A));
-        printf("\n\tUsing set_mask = %i", ldtb_set_mask);
-        printf("\n\tUsing clr_mask = %i", ldtb_clr_mask);
-        gpios[(uint32_t)GPIO_CLR_REG] = ldtb_clr_mask; // (1 << BL_MOTOR_PIN_B);
-        gpios[(uint32_t)GPIO_SET_REG] = ldtb_set_mask; // (1 << BL_MOTOR_PIN_A); // Back left motor
+        // printf("\nMoving Left Side Backward...");
+        // static uint32_t ldtb_set_mask = (0x0 | (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_B));
+        // static uint32_t ldtb_clr_mask = (0x0 | (1 << BL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_A));
+        // printf("\n\tUsing set_mask = %i", ldtb_set_mask);
+        // printf("\n\tUsing clr_mask = %i", ldtb_clr_mask);
+        // sleep(1);
+        // gpios[GPIO_CLR_REG] = ldtb_clr_mask; // (1 << BL_MOTOR_PIN_B);
+        // gpios[GPIO_SET_REG] = ldtb_set_mask; // (1 << BL_MOTOR_PIN_A); // Back left motor
             
         // gpios[(uint32_t)GPIO_SET_REG] |= (1 << FL_MOTOR_PIN_A); // Front left motor
         // gpios[(uint32_t)GPIO_CLR_REG] =  (1 << FL_MOTOR_PIN_B);
 
-        sleep(1);
+        // sleep(1);
         count++;
-    } while (count < 3);
+    } while (count < 1);
 
     munmap(gpio_reg_map, GPIO_PUP_PDN_CNTRL_REG3);
     close(gpiomem_fd);
