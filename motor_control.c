@@ -9,9 +9,12 @@
 
 #define SUCCESS (0)
 
+#define VERBOSE (0) // Enable debug print statements
+
 // These help with the bit shifting and arithmetic to properly modify the correct GPIO later in the program
 #define FSEL_NUM_BITS (3)
 #define GPIO_PINS_PER_REG (10)
+#define GPIO_BLOCK_SIZE (4096)
 
 // These are the pins corresponding to the left side drive train
 #define BL_MOTOR_PIN_A (17)
@@ -40,10 +43,16 @@
 // These are the masks bitwise or-ed with the set and clear registers to control the logicl level of the pins ultimately controlling polarity/direction of each motor
 // I am using macros to define these up here so these definitions can be resolved entirely during the preprocessor stage of compile time
 // saving us from using unnecessary cycles on an unchanging value
-#define LEFT_SIDE_BACKWARD_SET_MASK ( (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_B) )
+#define LEFT_SIDE_FORWARD_SET_MASK  ( (1 << BL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_A) ) // Forward
+#define LEFT_SIDE_FORWARD_CLR_MASK  ( (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_B) )
+
+#define LEFT_SIDE_BACKWARD_SET_MASK ( (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_B) ) // Backward
 #define LEFT_SIDE_BACKWARD_CLR_MASK ( (1 << BL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_A) )
 
-int handle_error(char * msg) {
+#define STOP_ALL_MOTORS_MASK ( (1 << BL_MOTOR_PIN_A) | (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_B) ) // Stop
+
+int handle_error(char * msg) 
+{
     perror(msg); 
     return EXIT_FAILURE;
 }
@@ -60,34 +69,27 @@ int init_gpio_pins(volatile uint32_t * gpios)
     gpios[(uint32_t)BL_RI_PIN_B] |= (1 << BL_SHIFT_B) | (1 << FL_SHIFT_A) | (1 << FL_SHIFT_B);
 }
 
-void moveLeftSideForward(volatile uint32_t * gpios) {
+void moveLeftSideForward(volatile uint32_t * gpios) 
+{
     printf("\nMoving Left Side Forward...");
-    static uint32_t ldtf_set_mask = (0x0 | (1 << BL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_A));
-    static uint32_t ldtf_clr_mask = (0x0 | (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_B));
-    printf("\n\tUsing set_mask = %i", ldtf_set_mask);
-    printf("\n\tUsing clr_mask = %i", ldtf_clr_mask);
-    gpios[GPIO_CLR_REG] = ldtf_clr_mask; // (1 << BL_MOTOR_PIN_B);
-    gpios[GPIO_SET_REG] = ldtf_set_mask; //(1 << BL_MOTOR_PIN_A); // Back left motor
+    gpios[GPIO_CLR_REG] = LEFT_SIDE_FORWARD_CLR_MASK; // (1 << BL_MOTOR_PIN_B);
+    gpios[GPIO_SET_REG] = LEFT_SIDE_FORWARD_SET_MASK; //(1 << BL_MOTOR_PIN_A); // Back left motor
 }
 
-void stop(volatile uint32_t * gpios) {
+void stop(volatile uint32_t * gpios) 
+{
     printf("\nStopping Left Side Drive Train...");
-    static uint32_t ld_stop_mask = (0x0 | (1 << BL_MOTOR_PIN_A) | (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_B));
-    gpios[GPIO_CLR_REG] = ld_stop_mask; // (1 << BL_MOTOR_PIN_A); // Back left motor
+    gpios[GPIO_CLR_REG] = STOP_ALL_MOTORS_MASK; // (1 << BL_MOTOR_PIN_A); // Back left motor
 }
 
-void moveLeftSideBackward(volatile uint32_t * gpios) {
+void moveLeftSideBackward(volatile uint32_t * gpios) 
+{
     printf("\nMoving Left Side Backward...");
-    // static uint32_t ldtb_set_mask = (0x0 | (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_B));
-    // static uint32_t ldtb_clr_mask = (0x0 | (1 << BL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_A));
-    // printf("\n\tUsing set_mask = %i", ldtb_set_mask);
-    // printf("\n\tUsing clr_mask = %i", ldtb_clr_mask);
-    sleep(1);
     gpios[GPIO_CLR_REG] = LEFT_SIDE_BACKWARD_CLR_MASK; // (1 << BL_MOTOR_PIN_B);
     gpios[GPIO_SET_REG] = LEFT_SIDE_BACKWARD_SET_MASK; // (1 << BL_MOTOR_PIN_A); // Back left motor
 }
 
-int main() 
+int main()
 {
     // In the filesystem we have /dev/gpiomem which is the block of physical memory we need to map
     // Man page: https://man7.org/linux/man-pages/man2/open.2.html 
@@ -100,7 +102,7 @@ int main()
     // Man page: https://man7.org/linux/man-pages/man2/mmap.2.html
     volatile uint32_t * gpios = (volatile uint32_t *)mmap(
         NULL,                    // Allow kernel to decide the virtual base address
-        4096, // This is the last register in the GPIO memory block
+        GPIO_BLOCK_SIZE, // This is the last register in the GPIO memory block
         PROT_READ | PROT_WRITE,  // Enable read and write access
         MAP_SHARED,              // Updates to mapping are visible by other processes, which is what we want with GPIO
         gpiomem_fd,              // FD we created above
@@ -128,7 +130,7 @@ int main()
     } while (count < 1);
 
     stop(gpios);
-    munmap((void *)gpios, 4096);
+    munmap((void *)gpios, GPIO_BLOCK_SIZE);
     close(gpiomem_fd);
     printf("\n");
 
