@@ -37,22 +37,28 @@
 // This Register will be used to set the pin low
 #define GPIO_CLR_REG (OFFSET_CLR0 / GPIO_REG_SIZE)
 
+// These are the masks bitwise or-ed with the set and clear registers to control the logicl level of the pins ultimately controlling polarity/direction of each motor
+// I am using macros to define these up here so these definitions can be resolved entirely during the preprocessor stage of compile time
+// saving us from using unnecessary cycles on an unchanging value
+#define LEFT_SIDE_BACKWARD_SET_MASK ( (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_B) )
+#define LEFT_SIDE_BACKWARD_CLR_MASK ( (1 << BL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_A) )
+
 int handle_error(char * msg) {
     perror(msg); 
     return EXIT_FAILURE;
 }
 
-// int get_gpio_virtual_mem_block(void * gpio_reg_map) {
+int init_gpio_pins(volatile uint32_t * gpios) 
+{
+    printf("\nClearing and initializing all motor GPIOs to output:");
 
+    // Setup BL motor pin A
+    gpios[(uint32_t)BL_RI_PIN_A] |= (1 << BL_SHIFT_A);
 
-//     // Type cast gpio mem to volatile since GPIO state is not guarunteed
-//     // gpios = (volatile uint32_t *)gpio_reg_map;
-//     return gpiomem_fd;
-// }
-
-// int init_gpio_pins(volatile uint32_t * gpios) {
-
-// }
+    // Setup BL motor pin B and FL motor pins A and B
+    // We can set these pins up at the same time because they are all controlled at different bit offsets within the same register
+    gpios[(uint32_t)BL_RI_PIN_B] |= (1 << BL_SHIFT_B) | (1 << FL_SHIFT_A) | (1 << FL_SHIFT_B);
+}
 
 void moveLeftSideForward(volatile uint32_t * gpios) {
     printf("\nMoving Left Side Forward...");
@@ -72,13 +78,13 @@ void stop(volatile uint32_t * gpios) {
 
 void moveLeftSideBackward(volatile uint32_t * gpios) {
     printf("\nMoving Left Side Backward...");
-    static uint32_t ldtb_set_mask = (0x0 | (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_B));
-    static uint32_t ldtb_clr_mask = (0x0 | (1 << BL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_A));
-    printf("\n\tUsing set_mask = %i", ldtb_set_mask);
-    printf("\n\tUsing clr_mask = %i", ldtb_clr_mask);
+    // static uint32_t ldtb_set_mask = (0x0 | (1 << BL_MOTOR_PIN_B) | (1 << FL_MOTOR_PIN_B));
+    // static uint32_t ldtb_clr_mask = (0x0 | (1 << BL_MOTOR_PIN_A) | (1 << FL_MOTOR_PIN_A));
+    // printf("\n\tUsing set_mask = %i", ldtb_set_mask);
+    // printf("\n\tUsing clr_mask = %i", ldtb_clr_mask);
     sleep(1);
-    gpios[GPIO_CLR_REG] = ldtb_clr_mask; // (1 << BL_MOTOR_PIN_B);
-    gpios[GPIO_SET_REG] = ldtb_set_mask; // (1 << BL_MOTOR_PIN_A); // Back left motor
+    gpios[GPIO_CLR_REG] = LEFT_SIDE_BACKWARD_CLR_MASK; // (1 << BL_MOTOR_PIN_B);
+    gpios[GPIO_SET_REG] = LEFT_SIDE_BACKWARD_SET_MASK; // (1 << BL_MOTOR_PIN_A); // Back left motor
 }
 
 int main() 
@@ -102,21 +108,7 @@ int main()
 
     // At this point, we have successfully mapped gpio registers to an array and have read/write access
     // to manipulate them according to our application needs
-    // volatile uint32_t * gpios = (volatile uint32_t *)gpio_reg_map;
-    // init_gpio_pins(gpios);
-
-    printf("\nClearing and initializing all motor GPIOs to output:");
-    // Setup BL motor pin A
-    printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)BL_RI_PIN_A, BL_SHIFT_A);
-    static uint32_t set_bl_pina_gpio_output_mask = (0x0 | (1 << BL_SHIFT_A));
-    gpios[(uint32_t)BL_RI_PIN_A] |= set_bl_pina_gpio_output_mask;
-
-    sleep(1);
-
-    // Setup BL motor pin B and FL motor pins A and B
-    printf("\n\tClearing and setting gpios[%i] to output and a shift of %i", (int)BL_RI_PIN_B, BL_SHIFT_B);
-    static uint32_t set_fl_pins_and_bl_pinb_gpio_output_mask = (0x0 | (1 << BL_SHIFT_B) | (1 << FL_SHIFT_A) | (1 << FL_SHIFT_B));
-    gpios[(uint32_t)BL_RI_PIN_B] |= set_fl_pins_and_bl_pinb_gpio_output_mask;
+    init_gpio_pins(gpios);
 
     // Test...
     uint32_t count = 0;
