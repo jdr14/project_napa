@@ -94,16 +94,12 @@ int init_gpio_pins(volatile uint32_t * gpios)
 
 void moveLeftSideForward(volatile uint32_t * gpios) 
 {
-    printf("\nMoving Left Side Forward...");
-    gpios[GPIO_CLR_REG] = LEFT_SIDE_FORWARD_CLR_MASK;
-    gpios[GPIO_SET_REG] = LEFT_SIDE_FORWARD_SET_MASK;
+
 }
 
 void moveRightSideForward(volatile uint32_t * gpios) 
 {
-    printf("\nMoving Right Side Forward...");
-    gpios[GPIO_CLR_REG] = RIGHT_SIDE_FORWARD_CLR_MASK;
-    gpios[GPIO_SET_REG] = RIGHT_SIDE_FORWARD_SET_MASK;
+
 }
 
 void stop(volatile uint32_t * gpios) 
@@ -112,15 +108,45 @@ void stop(volatile uint32_t * gpios)
     gpios[GPIO_CLR_REG] = STOP_ALL_MOTORS_MASK;
 }
 
-void moveLeftSideBackward(volatile uint32_t * gpios) 
+void moveForward(volatile uint32_t * gpios)
+{
+    printf("\nMoving Left Side Forward...");
+    gpios[GPIO_CLR_REG] = LEFT_SIDE_FORWARD_CLR_MASK;
+    gpios[GPIO_SET_REG] = LEFT_SIDE_FORWARD_SET_MASK;
+
+    printf("\nMoving Right Side Forward...");
+    gpios[GPIO_CLR_REG] = RIGHT_SIDE_FORWARD_CLR_MASK;
+    gpios[GPIO_SET_REG] = RIGHT_SIDE_FORWARD_SET_MASK;
+}
+
+void moveBackward(volatile uint32_t * gpios)
 {
     printf("\nMoving Left Side Backward...");
     gpios[GPIO_CLR_REG] = LEFT_SIDE_BACKWARD_CLR_MASK;
     gpios[GPIO_SET_REG] = LEFT_SIDE_BACKWARD_SET_MASK;
+
+    printf("\nMoving Right Side Backward...");
+    gpios[GPIO_CLR_REG] = RIGHT_SIDE_BACKWARD_CLR_MASK;
+    gpios[GPIO_SET_REG] = RIGHT_SIDE_BACKWARD_SET_MASK;
 }
 
-void moveRightSideBackward(volatile uint32_t * gpios) 
+void turnLeft(volatile uint32_t * gpios) 
 {
+    printf("\nMoving Left Side Backward...");
+    gpios[GPIO_CLR_REG] = LEFT_SIDE_BACKWARD_CLR_MASK;
+    gpios[GPIO_SET_REG] = LEFT_SIDE_BACKWARD_SET_MASK;
+
+    printf("\nMoving Right Side Forward...");
+    gpios[GPIO_CLR_REG] = RIGHT_SIDE_FORWARD_CLR_MASK;
+    gpios[GPIO_SET_REG] = RIGHT_SIDE_FORWARD_SET_MASK;
+}
+
+void turnRight(volatile uint32_t * gpios)
+{
+    printf("\nMoving Left Side Forward...");
+    gpios[GPIO_CLR_REG] = LEFT_SIDE_FORWARD_CLR_MASK;
+    gpios[GPIO_SET_REG] = LEFT_SIDE_FORWARD_SET_MASK;
+
     printf("\nMoving Right Side Backward...");
     gpios[GPIO_CLR_REG] = RIGHT_SIDE_BACKWARD_CLR_MASK;
     gpios[GPIO_SET_REG] = RIGHT_SIDE_BACKWARD_SET_MASK;
@@ -152,15 +178,25 @@ int main()
     // Test...
     uint32_t count = 0;
     do {
-        moveRightSideForward(gpios);
+        moveForward(gpios);
 
         sleep(1);
-
         stop(gpios);
-
         sleep(1);
 
-        moveRightSideBackward(gpios);
+        moveBackward(gpios);
+
+        sleep(1);
+        stop(gpios);
+        sleep(1);
+
+        turnRight(gpios);
+
+        sleep(1);
+        stop(gpios);
+        sleep(1);
+
+        turnLeft(gpios);
 
         sleep(1);
         count++;
