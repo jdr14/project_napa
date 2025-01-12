@@ -92,16 +92,6 @@ int init_gpio_pins(volatile uint32_t * gpios)
     gpios[(uint32_t)BL_RI_PIN_B] |= (1 << BL_SHIFT_B) | (1 << FL_SHIFT_A) | (1 << FL_SHIFT_B) | (1 << BR_SHIFT_A) | (1 << BR_SHIFT_B); // Should be register 2
 }
 
-void moveLeftSideForward(volatile uint32_t * gpios) 
-{
-
-}
-
-void moveRightSideForward(volatile uint32_t * gpios) 
-{
-
-}
-
 void stop(volatile uint32_t * gpios) 
 {
     printf("\nStopping Left Side Drive Train...");
