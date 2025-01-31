@@ -19,14 +19,20 @@
 // These are the pins corresponding to the left side drive train
 #define BL_MOTOR_PIN_A (17)
 #define BL_MOTOR_PIN_B (22)
-#define FL_MOTOR_PIN_A (23)
-#define FL_MOTOR_PIN_B (24)
+#define FL_MOTOR_PIN_A (24)
+#define FL_MOTOR_PIN_B (23)
 
 // These are the pins corresponding to the right side drive train
 #define BR_MOTOR_PIN_A (26)
 #define BR_MOTOR_PIN_B (27)
 #define FR_MOTOR_PIN_A (5)
 #define FR_MOTOR_PIN_B (6)
+
+// PWM pins
+#define BR_PWM0_0_PIN (32) // GPIO 12
+#define BL_PWM1_1_PIN (33) // GPIO 13
+#define FR_PWM0_0_PIN (12) // GPIO 18
+#define FL_PWM1_1_PIN (35) // GPIO 19
 
 // Define the Register Index which will be used to set the motor pins to output
 #define BL_RI_PIN_A (BL_MOTOR_PIN_A / GPIO_PINS_PER_REG)

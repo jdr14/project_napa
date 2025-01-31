@@ -3,7 +3,7 @@
 *
 * Note this header is written for the Raspberry Pi 4 which uses the BCM2711 SOC
 * 
-* See section 5.2 of the BCM2711 data sheet at 
+* GPIO - See section 5.2 of the BCM2711 data sheet at 
 * https://datasheets.raspberrypi.com/bcm2711/bcm2711-peripherals.pdf
 * 
 **************************/
@@ -26,8 +26,27 @@
 #define OFFSET_CLR0 (0x28)  //  0 - 31
 #define OFFSET_CLR1 (0x2c)  // 32 - 57
 // etc...
-
 // TODO: Fill out the rest of this GPIO header according to the datasheet
 
 // This is also the last address in the GPIO memory block, so this can double as the block size
 #define GPIO_PUP_PDN_CNTRL_REG3 (0xf0) // GPIO Pull-up/Pull-down Register 3
+
+
+/**************************
+*
+* PWM - See Chapter 8
+* 
+**************************/
+// Each of the following addresses are the base address for the registers related to the channels of the PWM
+#define PWM0_REG_BASE_ADDRESS (0x7e20c000)
+#define PWM1_REG_BASE_ADDRESS (0x7e20c800)
+
+// Offsets for PWM registers
+#define PWM_CTL_REG_OFFSET  (0x00) // Control
+#define PWM_STA_REG_OFFSET  (0x04) // Status
+#define PWM_DMAC_REG_OFFSET (0x08) // DMA Configuration
+#define PWM_RNG1_REG_OFFSET (0x10) // Channel 1 range
+#define PWM_DAT1_REG_OFFSET (0x14) // Channel 1 data
+#define PWM_FIF1_REG_OFFSET (0x18) // FIFO input
+#define PWM_RNG2_REG_OFFSET (0x20) // Channel 2 range
+#define PWM_DAT2_REG_OFFSET (0x24) // Channel 2 data
