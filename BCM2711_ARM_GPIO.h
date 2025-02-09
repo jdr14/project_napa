@@ -41,12 +41,48 @@
 #define PWM0_REG_BASE_ADDRESS (0x7e20c000)
 #define PWM1_REG_BASE_ADDRESS (0x7e20c800)
 
+#define REGISTER_SIZE_IN_BYTES (4)
+
 // Offsets for PWM registers
 #define PWM_CTL_REG_OFFSET  (0x00) // Control
-#define PWM_STA_REG_OFFSET  (0x04) // Status
+#define PWM_STA_REG_OFFSET  (0x04) // Status (useful for debugging)
 #define PWM_DMAC_REG_OFFSET (0x08) // DMA Configuration
 #define PWM_RNG1_REG_OFFSET (0x10) // Channel 1 range
 #define PWM_DAT1_REG_OFFSET (0x14) // Channel 1 data
 #define PWM_FIF1_REG_OFFSET (0x18) // FIFO input
 #define PWM_RNG2_REG_OFFSET (0x20) // Channel 2 range
 #define PWM_DAT2_REG_OFFSET (0x24) // Channel 2 data
+
+#define PWM_CTL_REG_INDEX  (PWM_CTL_REG_OFFSET / REGISTER_SIZE_IN_BYTES)
+#define PWM_STA_REG_INDEX  (PWM_STA_REG_OFFSET / REGISTER_SIZE_IN_BYTES) 
+#define PWM_DMAC_REG_INDEX (PWM_DMAC_REG_OFFSET / REGISTER_SIZE_IN_BYTES)
+#define PWM_RNG1_REG_INDEX (PWM_RNG1_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // defines channel 1 range (leave as default 32)
+#define PWM_DAT1_REG_INDEX (PWM_DAT1_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // We will use this register to set duty cycle for PWM channel 1 (PWM modulator algorithm outlined in spec)
+#define PWM_FIF1_REG_INDEX (PWM_FIF1_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // Not using the FIFO for our implementation
+#define PWM_RNG2_REG_INDEX (PWM_RNG2_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // defines channel 2 range (leave as default 32)
+#define PWM_DAT2_REG_INDEX (PWM_DAT2_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // We will use this register to set duty cycle for PWM channel 2 (PWM modulator algorithm outlined in spec)
+
+// bit 31:16 = reserved
+// bit 15 = MSEN2 (Channel 2) M/S enable - 0: PWM algorithm is used, 1 M/S transmission is used
+// bit 14 = reserved
+// bit 13 = USEF2 (Channel 2) Use FIFO? - 0: Data register is used, 1 FIFO is used
+// bit 12 = POLA2 (Channel 2) Polarity - 0: 0 = low, 1 = high
+// bit 11 = SBIT2 (Channel 2) Silence Bit: Defines state of output when no transmission takes place (default 0)
+// bit 10 = RPTL2 (Channel 2) repeat last data 0 when FIFO is empty, 1 last data in FIFO is transmitted repeated until FIFL isn't empty
+// bit 9  = MODE2 (Channel 2) 0: PWM mode
+// bit 8  = PWEN2 (Channel 2) 0: Channel disabled, 1: Channel enabled
+// bit 7  = MSEN1
+// bit 6  = CLRF  (1: clear fifo, 0: no effect)
+// bit 5  = USEF1
+// bit 4  = POLA1
+// bit 3  = SBIT1
+// bit 2  = RPTL1
+// bit 1  = MODE1
+// bit 0  = PWEN1
+// Cureent value = 1000000100000001 = 0x8101
+#define CTL_REG_VALUE (0x8101) // See bit definitions above
+
+// 100% duty cycle -> all bits in the register = 1 (32 bits -> 0b11111111111111111111111111111111)
+#define DUTY_CYCLE_100P (0xFFFFFFFF) // 0b11111111111111111111111111111111
+#define DUTY_CYCLE_96P  (0xFFFF7FFF)
+#define DUTY_CYCLE_50P  (0x55555555) // 0b01010101010101010101010101010101
