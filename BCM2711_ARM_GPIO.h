@@ -40,6 +40,7 @@
 // Each of the following addresses are the base address for the registers related to the channels of the PWM
 #define PWM0_REG_BASE_ADDRESS (0x7e20c000)
 #define PWM1_REG_BASE_ADDRESS (0x7e20c800)
+#define PWM1_OFFSET (2048) // 0x800 = 2048
 
 #define REGISTER_SIZE_IN_BYTES (4)
 
@@ -53,14 +54,25 @@
 #define PWM_RNG2_REG_OFFSET (0x20) // Channel 2 range
 #define PWM_DAT2_REG_OFFSET (0x24) // Channel 2 data
 
-#define PWM_CTL_REG_INDEX  (PWM_CTL_REG_OFFSET / REGISTER_SIZE_IN_BYTES)
-#define PWM_STA_REG_INDEX  (PWM_STA_REG_OFFSET / REGISTER_SIZE_IN_BYTES) 
-#define PWM_DMAC_REG_INDEX (PWM_DMAC_REG_OFFSET / REGISTER_SIZE_IN_BYTES)
-#define PWM_RNG1_REG_INDEX (PWM_RNG1_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // defines channel 1 range (leave as default 32)
-#define PWM_DAT1_REG_INDEX (PWM_DAT1_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // We will use this register to set duty cycle for PWM channel 1 (PWM modulator algorithm outlined in spec)
-#define PWM_FIF1_REG_INDEX (PWM_FIF1_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // Not using the FIFO for our implementation
-#define PWM_RNG2_REG_INDEX (PWM_RNG2_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // defines channel 2 range (leave as default 32)
-#define PWM_DAT2_REG_INDEX (PWM_DAT2_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // We will use this register to set duty cycle for PWM channel 2 (PWM modulator algorithm outlined in spec)
+// Define PWM0 (Channel 0) Offsets
+#define PWM0_CTL_REG_INDEX  (PWM_CTL_REG_OFFSET / REGISTER_SIZE_IN_BYTES)
+#define PWM0_STA_REG_INDEX  (PWM_STA_REG_OFFSET / REGISTER_SIZE_IN_BYTES) 
+#define PWM0_DMAC_REG_INDEX (PWM_DMAC_REG_OFFSET / REGISTER_SIZE_IN_BYTES)
+#define PWM0_RNG1_REG_INDEX (PWM_RNG1_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // defines channel 1 range (leave as default 32)
+#define PWM0_DAT1_REG_INDEX (PWM_DAT1_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // We will use this register to set duty cycle for PWM channel 1 (PWM modulator algorithm outlined in spec)
+#define PWM0_FIF1_REG_INDEX (PWM_FIF1_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // Not using the FIFO for our implementation
+#define PWM0_RNG2_REG_INDEX (PWM_RNG2_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // defines channel 2 range (leave as default 32)
+#define PWM0_DAT2_REG_INDEX (PWM_DAT2_REG_OFFSET / REGISTER_SIZE_IN_BYTES) // We will use this register to set duty cycle for PWM channel 2 (PWM modulator algorithm outlined in spec)
+
+// Define PWM1 (Channel 1) Offsets
+#define PWM1_CTL_REG_INDEX (PWM1_OFFSET + PWM0_CTL_REG_INDEX)
+#define PWM1_STA_REG_INDEX (PWM1_OFFSET + PWM0_STA_REG_INDEX)
+#define PWM1_DMAC_REG_INDEX (PWM1_OFFSET + PWM0_DMAC_REG_INDEX)
+#define PWM1_RNG1_REG_INDEX (PWM1_OFFSET + PWM0_RNG1_REG_INDEX) // defines channel 1 range (leave as default 32)
+#define PWM1_DAT1_REG_INDEX (PWM1_OFFSET + PWM0_DAT1_REG_INDEX) // We will use this register to set duty cycle for PWM channel 1 (PWM modulator algorithm outlined in spec)
+#define PWM1_FIF1_REG_INDEX (PWM1_OFFSET + PWM0_FIF1_REG_INDEX) // Not using the FIFO for our implementation
+#define PWM1_RNG2_REG_INDEX (PWM1_OFFSET + PWM0_RNG2_REG_INDEX) // defines channel 2 range (leave as default 32)
+#define PWM1_DAT2_REG_INDEX (PWM1_OFFSET + PWM0_DAT2_REG_INDEX) // We will use this register to set duty cycle for PWM channel 2 (PWM modulator algorithm outlined in spec)
 
 // bit 31:16 = reserved
 // bit 15 = MSEN2 (Channel 2) M/S enable - 0: PWM algorithm is used, 1 M/S transmission is used

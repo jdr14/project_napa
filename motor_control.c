@@ -149,17 +149,17 @@ void turnRight(volatile uint32_t * gpios)
     gpios[GPIO_SET_REG] = RIGHT_SIDE_BACKWARD_SET_MASK;
 }
 
-int init_pwm_registers(volatile uint32_t * pwm0, volatile uint32_t * pwm1) {
-    printf("\nindex = %i", PWM_CTL_REG_INDEX);
-    pwm0[PWM_CTL_REG_INDEX] = CTL_REG_VALUE;
-    pwm1[PWM_CTL_REG_INDEX] = CTL_REG_VALUE;
+int init_pwm_registers(volatile uint32_t * pwm) {
+    printf("\nPWM 0 index = %i | PWM 1 index = %i", PWM0_CTL_REG_INDEX, PWM1_CTL_REG_INDEX);
+    pwm[PWM0_CTL_REG_INDEX] = CTL_REG_VALUE;
+    pwm[PWM1_CTL_REG_INDEX] = CTL_REG_VALUE;
 }
 
-void setSpeed(volatile uint32_t * pwm0, volatile uint32_t * pwm1) {
-    pwm0[PWM_DAT1_REG_INDEX] = DUTY_CYCLE_50P;
-    pwm0[PWM_DAT2_REG_INDEX] = DUTY_CYCLE_50P;
-    pwm1[PWM_DAT1_REG_INDEX] = DUTY_CYCLE_100P;
-    pwm1[PWM_DAT2_REG_INDEX] = DUTY_CYCLE_100P;
+void setSpeed(volatile uint32_t * pwm) {
+    pwm[PWM0_DAT1_REG_INDEX] = DUTY_CYCLE_50P;
+    pwm[PWM0_DAT2_REG_INDEX] = DUTY_CYCLE_50P;
+    pwm[PWM1_DAT1_REG_INDEX] = DUTY_CYCLE_100P;
+    pwm[PWM1_DAT2_REG_INDEX] = DUTY_CYCLE_100P;
 }
 
 int main()
@@ -190,29 +190,29 @@ int main()
         return handle_error("open /dev/mem failed");
     }
 
-    volatile uint32_t * pwm0 = (volatile uint32_t *)mmap(
+    volatile uint32_t * pwm = (volatile uint32_t *)mmap(
         NULL,
         BLOCK_SIZE,
         PROT_READ | PROT_WRITE,
         MAP_SHARED,
         mem_fd,
         PWM0_REG_BASE_ADDRESS);
-    if (pwm0 == MAP_FAILED) {
-        return handle_error("Failed to map pwm0");
+    if (pwm == MAP_FAILED) {
+        return handle_error("Failed to map pwm");
     }
 
-    volatile uint32_t * pwm1 = (volatile uint32_t *)mmap(
-        NULL,
-        32,
-        PROT_READ | PROT_WRITE,
-        MAP_SHARED,
-        mem_fd,
-        PWM1_REG_BASE_ADDRESS);
-    if (pwm1 == MAP_FAILED) {
-        return handle_error("Failed to map pwm1");
-    }
+    // volatile uint32_t * pwm1 = (volatile uint32_t *)mmap(
+    //     NULL,
+    //     BLOCK_SIZE,
+    //     PROT_READ | PROT_WRITE,
+    //     MAP_SHARED,
+    //     mem_fd,
+    //     PWM1_REG_BASE_ADDRESS);
+    // if (pwm1 == MAP_FAILED) {
+    //     return handle_error("Failed to map pwm1");
+    // }
 
-    init_pwm_registers(pwm0, pwm1);
+    init_pwm_registers(pwm);
 
     // Test...
     uint32_t count = 0;
@@ -247,8 +247,7 @@ int main()
     munmap((void *)gpios, BLOCK_SIZE);
     close(gpiomem_fd);
 
-    munmap((void *)pwm0, BLOCK_SIZE);
-    munmap((void *)pwm1, BLOCK_SIZE);
+    munmap((void *)pwm, BLOCK_SIZE);
     close(mem_fd);
     printf("\n");
 
