@@ -1,3 +1,4 @@
+#define _FILE_OFFSET_BITS  64
 
 /**************************
 *
@@ -38,8 +39,13 @@
 * 
 **************************/
 // Each of the following addresses are the base address for the registers related to the channels of the PWM
-#define PWM0_REG_BASE_ADDRESS (0x7e20c000)
-#define PWM1_REG_BASE_ADDRESS (0x7e20c800)
+// #define PWM0_REG_BASE_ADDRESS (0x7e20c000)
+#define PWM0_REG_BASE_ADDRESS (0x7E200000)
+// #define PWM0_REG_BASE_ADDRESS (0xFE000000)
+// VPU: 0x7E00B880  (same for AArch32)
+// ARM64: 0xFE00B880
+// #define PWM1_REG_BASE_ADDRESS (0x7e20c800)
+// #define PWM1_REG_BASE_ADDRESS (0xFE000800)
 #define PWM1_OFFSET (2048) // 0x800 = 2048
 
 #define REGISTER_SIZE_IN_BYTES (4)
@@ -91,8 +97,8 @@
 // bit 2  = RPTL1
 // bit 1  = MODE1
 // bit 0  = PWEN1
-// Cureent value = 1000000100000001 = 0x8101
-#define CTL_REG_VALUE (0x8101) // See bit definitions above
+// Cureent value = 0000000100000001 = 0x101
+#define CTL_REG_VALUE (0x101) // See bit definitions above
 
 // 100% duty cycle -> all bits in the register = 1 (32 bits -> 0b11111111111111111111111111111111)
 #define DUTY_CYCLE_100P (0xFFFFFFFF) // 0b11111111111111111111111111111111

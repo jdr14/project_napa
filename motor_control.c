@@ -1,11 +1,11 @@
+#include "BCM2711_ARM_GPIO.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <fcntl.h> // Need for fd flags
 #include <sys/mman.h> // mmap() defined in this header
 #include <unistd.h> // Need to close fd and for sleep function
-
-#include "BCM2711_ARM_GPIO.h"
 
 #define SUCCESS (0)
 
@@ -83,6 +83,49 @@
 
 #define STOP_ALL_MOTORS_MASK ((1<<BL_MOTOR_PIN_A) | (1<<BL_MOTOR_PIN_B) | (1<<FL_MOTOR_PIN_A) | (1<<FL_MOTOR_PIN_B) | (1<<BR_MOTOR_PIN_A) | (1<<BR_MOTOR_PIN_B) | (1<<FR_MOTOR_PIN_A) | (1<<FR_MOTOR_PIN_B))
 
+#define PWM_BASE   0x7E200000   // PWM controller base address
+#define PWM_CTL    0x00         // PWM Control Register
+#define PWM_STA    0x04         // PWM Status Register
+#define PWM_RNG1   0x10         // PWM0 Range
+#define PWM_DAT1   0x14         // PWM0 Data
+#define PWM_RNG2   0x20         // PWM1 Range
+#define PWM_DAT2   0x24         // PWM1 Data
+// clk
+#define CLK_BASE   0x7E101000   // Clock manager base address (AArch32)
+#define CLK_LEN    0xA8         // Size of clock register region
+#define PWMCLK_CNTL  0x7E1010A0  // PWM Clock Control
+#define PWMCLK_DIV   0x7E1010A4  // PWM Clock Divider
+
+void enable_pwm_clock(volatile uint32_t * clk_regs) {
+    // Stop PWM clock before setting new values
+    // clk_regs[PWMCLK_CNTL / 4] = 0x5A000000 | (1 << 5);  // Kill the clocks
+
+    // usleep(10);  // Short delay
+
+    // clk_regs[PWMCLK_DIV / 4] = 0x5A000000 | (192 << 12);  // Set clock divisor
+    // clk_regs[PWMCLK_CNTL / 4] = 0x5A000011;  // Enable PWM clock (oscillator source)
+    
+    clk_regs[(0xA0 / 4)] = 0x5A000000 | (1 << 5);
+    clk_regs[(0xA4 / 4)] = 0x5A000000 | (192 << 12);
+    clk_regs[(0xA0 / 4)] = 0x5A000011;
+}
+
+void setup_pwm(volatile uint32_t * pwm) {
+    // Disable PWM before changing settings
+    pwm[PWM_CTL / 4] = 0;
+
+    // Set PWM range (Max duty cycle value)
+    pwm[PWM_RNG1 / 4] = 1024;  // Set range for PWM0
+    pwm[PWM_RNG2 / 4] = 1024;  // Set range for PWM1
+
+    // Set initial duty cycle
+    pwm[PWM_DAT1 / 4] = 512;  // 50% duty cycle for PWM0
+    pwm[PWM_DAT2 / 4] = 256;  // 25% duty cycle for PWM1
+
+    // Enable PWM in PWM mode (1 = PWM enable, 0x81 = Use PWM mode)
+    pwm[PWM_CTL / 4] = (1 << 0) | (1 << 8);  // Enable PWM0 and PWM1 in PWM mode
+}
+
 int handle_error(char * msg) 
 {
     perror(msg); 
@@ -92,11 +135,16 @@ int handle_error(char * msg)
 int init_gpio_pins(volatile uint32_t * gpios) 
 {
     printf("\nClearing and initializing all motor GPIOs to output:");
+    printf("\n%i %i %i %i\n", BL_PWM0_SEL_SHIFT, BR_PWM1_SEL_SHIFT, FL_PWM0_SEL_SHIFT, FR_PWM1_SEL_SHIFT);
     
     // Set functionality for motor pins and all the PWM control pins
     gpios[(uint32_t)FR_RI_PIN_A] |= (1 << FR_SHIFT_A) | (1 << FR_SHIFT_B); // Should be register 0
     gpios[(uint32_t)BL_RI_PIN_A] |= (1 << BL_SHIFT_A) | (1 << BL_PWM0_SEL_SHIFT) | (1 << BR_PWM1_SEL_SHIFT) | (1 << FL_PWM0_SEL_SHIFT) | (1 << FR_PWM1_SEL_SHIFT); // Should be register 1
     gpios[(uint32_t)BL_RI_PIN_B] |= (1 << BL_SHIFT_B) | (1 << FL_SHIFT_A) | (1 << FL_SHIFT_B) | (1 << BR_SHIFT_A) | (1 << BR_SHIFT_B); // Should be register 2
+    
+    printf("\ngpios[0] = 0x%08X", gpios[0]);
+    printf("\ngpios[1] = 0x%08X", gpios[1]);
+    printf("\ngpios[2] = 0x%08X", gpios[2]);
 }
 
 void stop(volatile uint32_t * gpios) 
@@ -152,18 +200,21 @@ void turnRight(volatile uint32_t * gpios)
 int init_pwm_registers(volatile uint32_t * pwm) {
     printf("\nPWM 0 index = %i | PWM 1 index = %i", PWM0_CTL_REG_INDEX, PWM1_CTL_REG_INDEX);
     pwm[PWM0_CTL_REG_INDEX] = CTL_REG_VALUE;
-    pwm[PWM1_CTL_REG_INDEX] = CTL_REG_VALUE;
+    // pwm[PWM1_CTL_REG_INDEX] |= CTL_REG_VALUE;
 }
 
 void setSpeed(volatile uint32_t * pwm) {
+    printf("\nsetting speed index = %i | PWM 1 index = %i", PWM0_DAT1_REG_INDEX, PWM1_DAT2_REG_INDEX);
     pwm[PWM0_DAT1_REG_INDEX] = DUTY_CYCLE_50P;
     pwm[PWM0_DAT2_REG_INDEX] = DUTY_CYCLE_50P;
-    pwm[PWM1_DAT1_REG_INDEX] = DUTY_CYCLE_100P;
-    pwm[PWM1_DAT2_REG_INDEX] = DUTY_CYCLE_100P;
+    // pwm[PWM1_DAT1_REG_INDEX] = DUTY_CYCLE_50P;
+    // pwm[PWM1_DAT2_REG_INDEX] = DUTY_CYCLE_50P;
 }
 
 int main()
 {
+    printf("Running in %d-bit mode\n", (int) sysconf(_SC_LONG_BIT));
+    
     // In the filesystem we have /dev/gpiomem which is the block of physical memory we need to map
     // Man page: https://man7.org/linux/man-pages/man2/open.2.html 
     int gpiomem_fd = open("/dev/gpiomem", O_RDWR | O_SYNC);
@@ -190,39 +241,46 @@ int main()
         return handle_error("open /dev/mem failed");
     }
 
-    volatile uint32_t * pwm = (volatile uint32_t *)mmap(
-        NULL,
-        BLOCK_SIZE,
-        PROT_READ | PROT_WRITE,
-        MAP_SHARED,
-        mem_fd,
-        PWM0_REG_BASE_ADDRESS);
-    if (pwm == MAP_FAILED) {
-        return handle_error("Failed to map pwm");
-    }
-
-    // volatile uint32_t * pwm1 = (volatile uint32_t *)mmap(
+    // volatile uint32_t * pwm = (volatile uint32_t *)mmap(
     //     NULL,
     //     BLOCK_SIZE,
     //     PROT_READ | PROT_WRITE,
     //     MAP_SHARED,
     //     mem_fd,
-    //     PWM1_REG_BASE_ADDRESS);
-    // if (pwm1 == MAP_FAILED) {
-    //     return handle_error("Failed to map pwm1");
+    //     PWM0_REG_BASE_ADDRESS);
+    // if (pwm == MAP_FAILED) {
+    //     return handle_error("Failed to map pwm");
     // }
-
-    init_pwm_registers(pwm);
+    volatile uint32_t * pwm = (uint32_t *)mmap(NULL, 0x28, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, PWM_BASE);
+    if (pwm == MAP_FAILED) {
+        return handle_error("Failed to map pwm");
+    }
+    gpios[1] |= (0b100 << 6);  // GPIO12 to ALT0 (PWM0)
+    gpios[1] |= (0b100 << 9);  // GPIO13 to ALT0 (PWM1)
+    
+    // printf("sizeof(pwm) = %i", sizeof(pwm));
+    // init_pwm_registers(pwm);
+    volatile uint32_t * clk_regs = (volatile uint32_t *)mmap(NULL, CLK_LEN, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, CLK_BASE);
+    if (clk_regs == NULL || clk_regs == MAP_FAILED) {
+        return handle_error("Failed to mmap clock registers");
+    }    
+    
+    setup_pwm(pwm);
+    enable_pwm_clock(clk_regs);
+    printf("\nPWM Control Register: 0x%08X", pwm[0]);
+    printf("\nPWM Status Register: 0x%08X\n", pwm[1]);
 
     // Test...
     uint32_t count = 0;
     do {
         moveForward(gpios);
-
         sleep(2);
         stop(gpios);
         sleep(1);
-        // setSpeed(pwm0, pwm1);
+        
+        pwm[PWM_DAT1 / 4] = 768;  // Adjust duty cycle for PWM0
+        pwm[PWM_DAT2 / 4] = 512;  // Adjust duty cycle for PWM1
+        printf("\nPWM Status Register: 0x%08X\n", pwm[1]);
 
         moveBackward(gpios);
 
@@ -247,9 +305,13 @@ int main()
     munmap((void *)gpios, BLOCK_SIZE);
     close(gpiomem_fd);
 
+munmap((void *)clk_regs, CLK_LEN);
+
     munmap((void *)pwm, BLOCK_SIZE);
     close(mem_fd);
     printf("\n");
+    
+    
 
     return SUCCESS;
 }
