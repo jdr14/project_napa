@@ -15,6 +15,9 @@ from picamera2 import Picamera2
 from picamera2.encoders import JpegEncoder
 from picamera2.outputs import FileOutput
 
+# 2592x1944 - native resolution for pi camera 2
+# <img src="stream.mjpg" width="640" height="480" />
+
 PAGE = """\
 <html>
 <head>
@@ -22,7 +25,8 @@ PAGE = """\
 </head>
 <body>
 <h1>Picamera2 MJPEG Streaming Demo</h1>
-<img src="stream.mjpg" width="640" height="480" />
+
+<img src="stream.mjpg" width="1296" height="972" />
 </body>
 </html>
 """
@@ -84,12 +88,12 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
 
 
 picam2 = Picamera2()
-picam2.configure(picam2.create_video_configuration(main={"size": (640, 480)}))
+picam2.configure(picam2.create_video_configuration(main={"size": (1296, 972)}))
 output = StreamingOutput()
 picam2.start_recording(JpegEncoder(), FileOutput(output))
 
 try:
-    address = ('', 7123)
+    address = ('', 4000)
     server = StreamingServer(address, StreamingHandler)
     server.serve_forever()
 finally:
