@@ -1,6 +1,12 @@
+import RPi.GPIO as GPIO
 from evdev import InputDevice, categorize, ecodes
 from time import sleep
 import asyncio
+
+BL_MOTOR_PIN_A = 17 # Pin 11
+BL_MOTOR_PIN_B = 22 # Pin 15
+FL_MOTOR_PIN_A = 24 # Pin 18
+FL_MOTOR_PIN_B = 23 # Pin 16
 
 # Find the device path. You might need to check /dev/input/event* for the correct one.
 controller = InputDevice('/dev/input/event4') # Replace X with the correct event number
@@ -35,6 +41,12 @@ sleep(2)
 # Home   --> code = 316 | type = 1 | value = 1
 # Select --> code = 309 | type = 1 | value = 1
 
+# JOYSTICK Mapping
+# Left joystick all the way forward --> code = 1 | value = -32K
+# Left joystick all the way backward --> code = 1 | value = 32K
+# Left joystick all the way right --> code = 0 | value = 32K
+# Left joystick all the way left --> code = 0 | value = -32K
+#
 async def read_controller():
     async for event in controller.async_read_loop():
         if event.type == ecodes.EV_ABS:
