@@ -1,5 +1,6 @@
 from evdev import InputDevice, categorize, ecodes
 from time import sleep
+import asyncio
 
 # Find the device path. You might need to check /dev/input/event* for the correct one.
 controller = InputDevice('/dev/input/event4') # Replace X with the correct event number
@@ -34,7 +35,9 @@ sleep(2)
 # Home   --> code = 316 | type = 1 | value = 1
 # Select --> code = 309 | type = 1 | value = 1
 
-for event in controller.read_loop():
-    if event.type == ecodes.EV_KEY:
-        print(f"type = {event.type} | code = {event.code} | value = {event.value}")
-        exit(0)
+async def read_controller():
+    async for event in controller.async_read_loop():
+        if event.type == ecodes.EV_ABS:
+            print(f"type = {event.type} | code = {event.code} | value = {event.value}")
+
+asyncio.run(read_controller())
