@@ -4,7 +4,7 @@ CC = gcc
 
 # Compiler flags
 CXXFLAGS = -std=c++20 -Wall -Wextra -O2
-LDFLAGS = -lwiringPi
+LDFLAGS = -lpigpio -lrt
 
 # Source files
 SRC = main.cpp
@@ -28,8 +28,8 @@ $(TARGET): $(OBJ)
 clean:
 	rm -f $(OBJ) $(TARGET)
 
-# Install wiringPi (if not already installed)
-# install_wiringPi:
-# 	sudo apt-get install -y wiringpi
+# Install pigpio (if not already installed)
+install_pigpio:
+	sudo apt-get install pigpio
 
 .PHONY: all clean
