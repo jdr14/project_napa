@@ -57,11 +57,26 @@ class Controller:
 
 class Motors:
     def __init__(self, thread_safe_controller_queue):
+        # Using a thread safe queue as the method for inter process communication
         self.ipc_queue = thread_safe_controller_queue
+        
+        # These are the pins corresponding to the left side drive train
         self.BL_MOTOR_PIN_A = 17 # Pin 11
         self.BL_MOTOR_PIN_B = 22 # Pin 15
         self.FL_MOTOR_PIN_A = 24 # Pin 18
         self.FL_MOTOR_PIN_B = 23 # Pin 16
+        
+        # These are the pins corresponding to the right side drive train
+        self.BR_MOTOR_PIN_A = 26 # Pin 37
+        self.BR_MOTOR_PIN_B = 27 # Pin 13
+        self.FR_MOTOR_PIN_A = 5  # Pin 29
+        self.FR_MOTOR_PIN_B = 6  # Pin 31
+        
+        # PWM pins
+        self.BL_PWM0_0_PIN = 12 # Pin 32 
+        self.BR_PWM1_1_PIN = 13 # Pin 33
+        self.FL_PWM0_0_PIN = 18 # Pin 12
+        self.FR_PWM1_1_PIN = 19 # Pin 35
 
     def forward(self):
         gpio.output(self.FL_MOTOR_PIN_A, gpio.HIGH)
@@ -71,7 +86,6 @@ class Motors:
         while True:
             eType, eCode, eValue = self.ipc_queue.get()
             print(f"eType = {eType} | eCode = {eCode} | eValue = {eValue}")
-            
     
 
 def main():
