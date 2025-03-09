@@ -83,18 +83,13 @@ class Motors:
         self.direction = "stop"
         self.current_duty_cycle = 0
         
-        # These are the pins corresponding to the left side drive train
+        # Left side drive train pins
         self.BL_MOTOR_PIN_A = 17 # Pin 11
         self.BL_MOTOR_PIN_B = 22 # Pin 15
         self.FL_MOTOR_PIN_A = 24 # Pin 18
         self.FL_MOTOR_PIN_B = 23 # Pin 16
         
-        gpio.setup(self.BL_MOTOR_PIN_A, gpio.OUT) # Pin 11
-        gpio.setup(self.BL_MOTOR_PIN_B, gpio.OUT) # Pin 15
-        gpio.setup(self.FL_MOTOR_PIN_A, gpio.OUT) # Pin 18
-        gpio.setup(self.FL_MOTOR_PIN_B, gpio.OUT) # Pin 16
-        
-        # These are the pins corresponding to the right side drive train
+        # Right side drive train pins
         self.BR_MOTOR_PIN_A = 26 # Pin 37
         self.BR_MOTOR_PIN_B = 27 # Pin 13
         self.FR_MOTOR_PIN_A = 5  # Pin 29
@@ -105,51 +100,72 @@ class Motors:
         self.BR_PWM1_1_PIN = 13 # Pin 33
         self.FL_PWM0_0_PIN = 18 # Pin 12
         self.FR_PWM1_1_PIN = 19 # Pin 35
-
-        # gpio.setup(self.BL_PWM0_0_PIN, gpio.OUT) # Pin 32
-        # gpio.setup(self.FL_PWM0_0_PIN, gpio.OUT) # Pin 12
-        # self.bl_pwm = gpio.PWM(self.BL_PWM0_0_PIN, self.pwm_freq)
-        # self.fl_pwm = gpio.PWM(self.FL_PWM0_0_PIN, self.pwm_freq)
-        # print(f"Starting PWM pins at a duty cycle of {self.current_duty_cycle}")
-        # self.bl_pwm.start(self.current_duty_cycle)
-        # self.fl_pwm.start(self.current_duty_cycle)
-
-    def forward(self):
+        
+    def _left_side_dt_forward(self):
         gpio.output(self.FL_MOTOR_PIN_A, gpio.LOW)
         gpio.output(self.FL_MOTOR_PIN_B, gpio.HIGH)
-        # gpio.output(self.BL_MOTOR_PIN_A, gpio.HIGH)
-        # gpio.output(self.BL_MOTOR_PIN_B, gpio.LOW)
+        gpio.output(self.BL_MOTOR_PIN_A, gpio.LOW)
+        gpio.output(self.BL_MOTOR_PIN_B, gpio.HIGH)
+
+    def _right_side_dt_forward(self):
+        gpio.output(self.FR_MOTOR_PIN_A, gpio.HIGH)
+        gpio.output(self.FR_MOTOR_PIN_B, gpio.LOW)
+        gpio.output(self.BR_MOTOR_PIN_A, gpio.HIGH)
+        gpio.output(self.BR_MOTOR_PIN_B, gpio.LOW)
         
-    def backward(self):
+    def _left_side_dt_backward(self):
         gpio.output(self.FL_MOTOR_PIN_A, gpio.HIGH)
         gpio.output(self.FL_MOTOR_PIN_B, gpio.LOW)
-        # gpio.output(self.BL_MOTOR_PIN_A, gpio.LOW)
-        # gpio.output(self.BL_MOTOR_PIN_B, gpio.HIGH)
+        gpio.output(self.BL_MOTOR_PIN_A, gpio.HIGH)
+        gpio.output(self.BL_MOTOR_PIN_B, gpio.LOW)
+        
+    def _right_side_dt_backward(self):
+        gpio.output(self.FR_MOTOR_PIN_A, gpio.LOW)
+        gpio.output(self.FR_MOTOR_PIN_B, gpio.HIGH)
+        gpio.output(self.BR_MOTOR_PIN_A, gpio.LOW)
+        gpio.output(self.BR_MOTOR_PIN_B, gpio.HIGH)
+
+    def forward(self):
+        self._left_side_dt_forward()
+        self._right_side_dt_forward()
+        
+    def backward(self):
+        self._left_side_dt_backward()
+        self._right_side_dt_backward()
         
     def stop(self):
         gpio.output(self.FL_MOTOR_PIN_A, gpio.LOW)
         gpio.output(self.FL_MOTOR_PIN_B, gpio.LOW)
-        # gpio.output(self.BL_MOTOR_PIN_A, gpio.LOW)
-        # gpio.output(self.BL_MOTOR_PIN_B, gpio.LOW)
+        gpio.output(self.BL_MOTOR_PIN_A, gpio.LOW)
+        gpio.output(self.BL_MOTOR_PIN_B, gpio.LOW)
+        gpio.output(self.FR_MOTOR_PIN_A, gpio.LOW)
+        gpio.output(self.FR_MOTOR_PIN_B, gpio.LOW)
+        gpio.output(self.BR_MOTOR_PIN_A, gpio.LOW)
+        gpio.output(self.BR_MOTOR_PIN_B, gpio.LOW)
         
     def setSpeed(self, value):
         # Translate the raw joystick value to the 0-100% duty cycle for PWM control
-        if math.fabs(value) < self.drift_offset and self.current_duty_cycle != 0: # Have a small range of buffer to account for joystick drift
-            print(f"Setting Duty Cycle to 0%")
-            self.current_duty_cycle = 0
-            self.bl_pwm.ChangeDutyCycle(self.current_duty_cycle)
-            self.fl_pwm.ChangeDutyCycle(self.current_duty_cycle)
-            return
-        duty_cycle_percent = int(math.floor( (math.fabs(math.fabs(value) - self.drift_offset) * 3.15) / (1000 * self.duty_cycle_increment) )) * 5 + 5
-        if duty_cycle_percent > 100:
-            duty_cycle_percent = 100
-        if duty_cycle_percent < 10:
-            duty_cycle_percent = 0
+        duty_cycle_percent = 0
+        if math.fabs(value) > self.drift_offset: # Have a small range of buffer to account for joystick drift
+            # print(f"Setting Duty Cycle to 0%")
+            # self.current_duty_cycle = 0
+            # self.bl_pwm.ChangeDutyCycle(self.current_duty_cycle)
+            # self.fl_pwm.ChangeDutyCycle(self.current_duty_cycle)
+            # return
+        # else:
+            duty_cycle_percent = int(math.floor( (math.fabs(math.fabs(value) - self.drift_offset) * 3.15) / (1000 * self.duty_cycle_increment) )) * 5 + 5
+            if duty_cycle_percent > 100:
+                duty_cycle_percent = 100
+            elif duty_cycle_percent < 10:
+                duty_cycle_percent = 0
+        
         if duty_cycle_percent != self.current_duty_cycle:
-            print(f"Setting Duty Cycle to {duty_cycle_percent}%")
-            self.current_duty_cycle = duty_cycle_percent
+            self.current_duty_cycle = duty_cycle_percent    
+            print(f"Setting Duty Cycle to {self.current_duty_cycle}%")
             self.bl_pwm.ChangeDutyCycle(self.current_duty_cycle)
             self.fl_pwm.ChangeDutyCycle(self.current_duty_cycle)
+            self.br_pwm.ChangeDutyCycle(self.current_duty_cycle)
+            self.fr_pwm.ChangeDutyCycle(self.current_duty_cycle)
         
     def setDirection(self, value):
         if math.fabs(value) < self.drift_offset and self.direction != "stop":
@@ -164,17 +180,43 @@ class Motors:
             print("Moving Backward")
             self.direction = "backward"
             self.backward()
+    
+    def _setup(self):
+        # Left side drive train pins
+        gpio.setup(self.BL_MOTOR_PIN_A, gpio.OUT) 
+        gpio.setup(self.BL_MOTOR_PIN_B, gpio.OUT)
+        gpio.setup(self.FL_MOTOR_PIN_A, gpio.OUT)
+        gpio.setup(self.FL_MOTOR_PIN_B, gpio.OUT)
         
-    def run(self):    
-        eType, eCode, eValue = (None, None, None)
+        # Right side drive train pins
+        gpio.setup(self.BR_MOTOR_PIN_A, gpio.OUT)
+        gpio.setup(self.BR_MOTOR_PIN_B, gpio.OUT)
+        gpio.setup(self.FR_MOTOR_PIN_A, gpio.OUT)
+        gpio.setup(self.FR_MOTOR_PIN_B, gpio.OUT)
         
-        gpio.setup(self.BL_PWM0_0_PIN, gpio.OUT) # Pin 32
-        gpio.setup(self.FL_PWM0_0_PIN, gpio.OUT) # Pin 12
+        # PWM pins
+        gpio.setup(self.BL_PWM0_0_PIN, gpio.OUT)
+        gpio.setup(self.FL_PWM0_0_PIN, gpio.OUT)
+        gpio.setup(self.BR_PWM1_1_PIN, gpio.OUT)
+        gpio.setup(self.FR_PWM1_1_PIN, gpio.OUT)
+        
+        # Set PWM Frequency
         self.bl_pwm = gpio.PWM(self.BL_PWM0_0_PIN, self.pwm_freq)
         self.fl_pwm = gpio.PWM(self.FL_PWM0_0_PIN, self.pwm_freq)
+        self.br_pwm = gpio.PWM(self.BR_PWM1_1_PIN, self.pwm_freq)
+        self.fr_pwm = gpio.PWM(self.FR_PWM1_1_PIN, self.pwm_freq)
+        
+        # Set intiial duty cycle
         self.bl_pwm.start(self.current_duty_cycle)
         self.fl_pwm.start(self.current_duty_cycle)
-            
+        self.br_pwm.start(self.current_duty_cycle)
+        self.fr_pwm.start(self.current_duty_cycle)
+        
+    def run(self):
+        self._setup()
+        
+        eType, eCode, eValue = (None, None, None)
+        
         def _mc_callback():
             while True:
                 if eCode == 1:
@@ -188,28 +230,11 @@ class Motors:
             
         while True:
             eType, eCode, eValue = self.ipc_queue.get()
-        
-        # while True:
-            # eType, eCode, eValue = self.ipc_queue.get()
-            # print(f"eType = {eType} | eCode = {eCode} | eValue = {eValue}")
-            # if eCode == 1:
-            #     self.setDirection(eValue)
-            #     self.setSpeed(eValue)
-            #     # time.sleep(0.1) # Delay for stability
-
 
 """
 Handle signals and gracefully shutdown before exit
 """
 def signal_handler(sgnl, _):
-    # match sgnl:
-    #     case signal.SIGINT:
-    #         print("Caught SIGINT: Ctrl+C detected, cleaning up and shutting down")
-    #     case signal.SIGTERM:
-    #         print("Caught SIGTERM: cleaning up and shutting down")
-    #     case signal.SIGKILL:
-    #         print("Caught SIGKILL: cleaning up and shutting down")
-    # print("Cleaning up GPIO")
     gpio.cleanup()
     for proc in procList:
         if proc.is_alive():
@@ -229,12 +254,14 @@ def main():
     ctl_queue = Queue()
     ctlr = Controller(ctl_queue)
     motors = Motors(ctl_queue)
-    # parent_conn, child_conn = Pipe()
     ctlProcess = Process(target=ctlr.controller_input)
-    # ctlProcess = Process(target=ctlr.read_controller)
     motorProcess = Process(target=motors.run)
+    
+    # Start and append the bluetooth controller process
     ctlProcess.start()
     procList.append(ctlProcess)
+    
+    # Start and append the motor control process
     motorProcess.start()
     procList.append(motorProcess)
     
@@ -245,10 +272,6 @@ def main():
     except Exception as e:
         print(repr(e))
         signal_handler(None, None)
-    
-    # signal.signal(signal.SIGKILL, signal_handler)
-    # ctlProcess.join()
-    # motorProcess.join()
 
 if __name__ == '__main__':
     main()
