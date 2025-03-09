@@ -53,22 +53,12 @@ class Controller:
         print(self.controller.phys)
         
     async def read_controller(self):
-    # def read_controller(self):
         async for event in self.controller.async_read_loop():
-            # await asyncio.sleep(0.25) # sleep for 250 ms
-            # event = self.controller.read_one()
             if event and event.type == ecodes.EV_ABS:
-                # print(f"type = {event.type} | code = {event.code} | value = {event.value}")
                 self.ipc_queue.put([event.type, event.code, event.value])
-        # threading.Timer(0.1, self.read_controller).start()
-        # time.sleep(0.1)
             
     def controller_input(self):
         asyncio.run(self.read_controller())
-        # threading.Timer(0.25, self.read_controller).start()
-        # self.timerThread = threading.Thread(target=self.read_controller)
-        # self.timerThread.daemon = True
-        # self.timerThread.start()
 
 class Motors:
     def __init__(self, thread_safe_controller_queue):
@@ -113,13 +103,13 @@ class Motors:
         gpio.output(self.BR_MOTOR_PIN_A, gpio.HIGH)
         gpio.output(self.BR_MOTOR_PIN_B, gpio.LOW)
         
-    def _left_side_dt_backward(self):
+    def left_side_dt_backward(self):
         gpio.output(self.FL_MOTOR_PIN_A, gpio.HIGH)
         gpio.output(self.FL_MOTOR_PIN_B, gpio.LOW)
         gpio.output(self.BL_MOTOR_PIN_A, gpio.HIGH)
         gpio.output(self.BL_MOTOR_PIN_B, gpio.LOW)
         
-    def _right_side_dt_backward(self):
+    def right_side_dt_backward(self):
         gpio.output(self.FR_MOTOR_PIN_A, gpio.LOW)
         gpio.output(self.FR_MOTOR_PIN_B, gpio.HIGH)
         gpio.output(self.BR_MOTOR_PIN_A, gpio.LOW)
@@ -138,8 +128,6 @@ class Motors:
         gpio.output(self.BR_MOTOR_PIN_B, gpio.LOW)
         
     def setSpeed(self, code, value):
-        if not code or not value:
-            return
         duty_cycle_percent = 0
         # Have a small range of buffer to account for joystick drift (if it within this range, we consider the effective duty_cycle to be 0%)
         if math.fabs(value) > self.drift_offset:
@@ -161,8 +149,6 @@ class Motors:
                 self.fr_pwm.ChangeDutyCycle(self.current_duty_cycle)
         
     def setDirection(self, code, value):
-        if not code or not value: # Nonetype guard
-            return
         if code == 1 and math.fabs(value) < self.drift_offset:
             self.stop_left()
         elif code == 4 and math.fabs(value) < self.drift_offset:
@@ -170,11 +156,11 @@ class Motors:
         elif code == 1 and value < (-1 * self.drift_offset):
             self.left_side_dt_forward()
         elif code == 1 and value > self.drift_offset:
-            self._left_side_dt_backward()
+            self.left_side_dt_backward()
         elif code == 4 and value < (-1 * self.drift_offset):
             self.right_side_dt_forward()
         elif code == 4 and value > self.drift_offset:
-            self._right_side_dt_backward()
+            self.right_side_dt_backward()
     
     def _setup(self):
         # Left side drive train pins
@@ -210,7 +196,7 @@ class Motors:
     def run(self):
         self._setup()
         
-        eType, eCode, eValue = (None, None, None)
+        eType, eCode, eValue = (0, 0, 0)
         
         def _mc_callback():
             while True:
