@@ -48,9 +48,8 @@ class Controller:
         
         # Find the device path. You might need to check /dev/input/event* for the correct one.
         self.controller = InputDevice('/dev/input/event4') # Replace X with the correct event number
-        
-        print(f"Successfully connected to {self.controller.name}")
-        print(self.controller.phys)
+        print(f"Successfully connected to {self.controller.name} ({self.controller.phys})")
+        print(f"Reading from {self.controller.path}")
         
     async def read_controller(self):
         async for event in self.controller.async_read_loop():
