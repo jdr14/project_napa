@@ -106,13 +106,13 @@ class Motors:
         self.FL_PWM0_0_PIN = 18 # Pin 12
         self.FR_PWM1_1_PIN = 19 # Pin 35
 
-        gpio.setup(self.BL_PWM0_0_PIN, gpio.OUT) # Pin 32
-        gpio.setup(self.FL_PWM0_0_PIN, gpio.OUT) # Pin 12
-        self.bl_pwm = gpio.PWM(self.BL_PWM0_0_PIN, self.pwm_freq)
-        self.fl_pwm = gpio.PWM(self.FL_PWM0_0_PIN, self.pwm_freq)
-        print(f"Starting PWM pins at a duty cycle of {self.current_duty_cycle}")
-        self.bl_pwm.start(self.current_duty_cycle)
-        self.fl_pwm.start(self.current_duty_cycle)
+        # gpio.setup(self.BL_PWM0_0_PIN, gpio.OUT) # Pin 32
+        # gpio.setup(self.FL_PWM0_0_PIN, gpio.OUT) # Pin 12
+        # self.bl_pwm = gpio.PWM(self.BL_PWM0_0_PIN, self.pwm_freq)
+        # self.fl_pwm = gpio.PWM(self.FL_PWM0_0_PIN, self.pwm_freq)
+        # print(f"Starting PWM pins at a duty cycle of {self.current_duty_cycle}")
+        # self.bl_pwm.start(self.current_duty_cycle)
+        # self.fl_pwm.start(self.current_duty_cycle)
 
     def forward(self):
         gpio.output(self.FL_MOTOR_PIN_A, gpio.LOW)
@@ -167,13 +167,20 @@ class Motors:
         
     def run(self):    
         eType, eCode, eValue = (None, None, None)
+        
+        gpio.setup(self.BL_PWM0_0_PIN, gpio.OUT) # Pin 32
+        gpio.setup(self.FL_PWM0_0_PIN, gpio.OUT) # Pin 12
+        self.bl_pwm = gpio.PWM(self.BL_PWM0_0_PIN, self.pwm_freq)
+        self.fl_pwm = gpio.PWM(self.FL_PWM0_0_PIN, self.pwm_freq)
+        self.bl_pwm.start(self.current_duty_cycle)
+        self.fl_pwm.start(self.current_duty_cycle)
             
         def _mc_callback():
             while True:
                 if eCode == 1:
                     self.setDirection(eValue)
                     self.setSpeed(eValue)
-                    time.sleep(0.1) # Delay for stability
+                time.sleep(0.1) # Delay for stability
             
         mc_worker = threading.Thread(target=_mc_callback)
         mc_worker.daemon = True
