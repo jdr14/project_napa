@@ -2,8 +2,12 @@ from multiprocessing import Process, Queue
 import RPi.GPIO as gpio
 from evdev import InputDevice, categorize, ecodes
 from time import sleep
+import signal
 import asyncio
 import math
+import sys
+
+procList = []
 
 # Through trial and error of the following, I've been able to figure out the pro controller mappings
 # Button Pad
@@ -153,9 +157,35 @@ class Motors:
             # print(f"eType = {eType} | eCode = {eCode} | eValue = {eValue}")
             self.setDirection(eValue)
             self.setSpeed(eValue)
-            
 
+"""
+Handle signals and gracefully shutdown before exit
+"""
+def signal_handler(sgnl, _):
+    # match sgnl:
+    #     case signal.SIGINT:
+    #         print("Caught SIGINT: Ctrl+C detected, cleaning up and shutting down")
+    #     case signal.SIGTERM:
+    #         print("Caught SIGTERM: cleaning up and shutting down")
+    #     case signal.SIGKILL:
+    #         print("Caught SIGKILL: cleaning up and shutting down")
+    # print("Cleaning up GPIO")
+    gpio.cleanup()
+    for proc in procList:
+        if proc.is_alive():
+            proc.terminate()
+            print(f"Process \"{proc.pid}\" terminated")
+    
+    for proc in procList:
+        proc.join(timeout=2) # Timeout to prevent hang
+        print(f"Process \"{proc.pid}\" joined")
+    sys.exit(0)
+    
 def main():
+    # Register our signal handlers for the desired signal
+    signal.signal(signal.SIGINT,  signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
     ctl_queue = Queue()
     ctlr = Controller(ctl_queue)
     motors = Motors(ctl_queue)
@@ -163,9 +193,21 @@ def main():
     ctlProcess = Process(target=ctlr.controller_input)
     motorProcess = Process(target=motors.run)
     ctlProcess.start()
+    procList.append(ctlProcess)
     motorProcess.start()
-    ctlProcess.join()
-    motorProcess.join()
+    procList.append(motorProcess)
+    
+    # Keep main process going
+    try:
+        while True:
+            sleep(1)
+    except Exception as e:
+        print(repr(e))
+        signal_handler(None, None)
+    
+    # signal.signal(signal.SIGKILL, signal_handler)
+    # ctlProcess.join()
+    # motorProcess.join()
 
 if __name__ == '__main__':
     main()
