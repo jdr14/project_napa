@@ -66,7 +66,7 @@ class Controller:
 class Motors:
     """
     left  side pins (in order): fpA (17), fpB (22), bpA (24), bpB (23), pw0 (12), pw1 (18)
-    right side pins (in order): fpA (26), fpB (27), bpA (5),  bpB (6),  pw0 (13), pw1 (19)
+    right side pins (in order): fpA (27), fpB (26), bpA (6),  bpB (5),  pw0 (13), pw1 (19)
     """
     def __init__(self, thread_safe_controller_queue, fpA, fpB, bpA, bpB, pw0, pw1):
         # Using a thread safe queue as the method for inter process communication
@@ -83,29 +83,15 @@ class Motors:
         self.MOTOR_PIN_BACK_A = bpA # Pin 18
         self.MOTOR_PIN_BACK_B = bpB # Pin 16
         
-        # # Right side drive train pins
-        # self.BR_MOTOR_PIN_A = 26 # Pin 37
-        # self.BR_MOTOR_PIN_B = 27 # Pin 13
-        # self.FR_MOTOR_PIN_A = 5  # Pin 29
-        # self.FR_MOTOR_PIN_B = 6  # Pin 31
-        
         # PWM pins
         self.PWM_PIN_0 = pw0 # Pin 32 
         self.PWM_PIN_1 = pw1 # Pin 33
-        # self.FL_PWM0_0_PIN = 18 # Pin 12
-        # self.FR_PWM1_1_PIN = 19 # Pin 35
         
     def forward(self):
         gpio.output(self.MOTOR_PIN_FRONT_A, gpio.LOW)
         gpio.output(self.MOTOR_PIN_FRONT_B, gpio.HIGH)
         gpio.output(self.MOTOR_PIN_BACK_A, gpio.LOW)
         gpio.output(self.MOTOR_PIN_BACK_B, gpio.HIGH)
-
-    # def right_side_dt_forward(self):
-    #     gpio.output(self.FR_MOTOR_PIN_A, gpio.HIGH)
-    #     gpio.output(self.FR_MOTOR_PIN_B, gpio.LOW)
-    #     gpio.output(self.BR_MOTOR_PIN_A, gpio.HIGH)
-    #     gpio.output(self.BR_MOTOR_PIN_B, gpio.LOW)
         
     def backward(self):
         gpio.output(self.MOTOR_PIN_FRONT_A, gpio.HIGH)
@@ -113,23 +99,11 @@ class Motors:
         gpio.output(self.MOTOR_PIN_BACK_A, gpio.HIGH)
         gpio.output(self.MOTOR_PIN_BACK_B, gpio.LOW)
         
-    # def right_side_dt_backward(self):
-    #     gpio.output(self.FR_MOTOR_PIN_A, gpio.LOW)
-    #     gpio.output(self.FR_MOTOR_PIN_B, gpio.HIGH)
-    #     gpio.output(self.BR_MOTOR_PIN_A, gpio.LOW)
-    #     gpio.output(self.BR_MOTOR_PIN_B, gpio.HIGH)
-        
     def stop(self):
         gpio.output(self.MOTOR_PIN_FRONT_A, gpio.LOW)
         gpio.output(self.MOTOR_PIN_FRONT_B, gpio.LOW)
         gpio.output(self.MOTOR_PIN_BACK_A, gpio.LOW)
         gpio.output(self.MOTOR_PIN_BACK_B, gpio.LOW)
-        
-    # def stop_right(self):
-    #     gpio.output(self.FR_MOTOR_PIN_A, gpio.LOW)
-    #     gpio.output(self.FR_MOTOR_PIN_B, gpio.LOW)
-    #     gpio.output(self.BR_MOTOR_PIN_A, gpio.LOW)
-    #     gpio.output(self.BR_MOTOR_PIN_B, gpio.LOW)
         
     def setSpeed(self, value):
         duty_cycle_percent = 0
@@ -145,26 +119,16 @@ class Motors:
         if duty_cycle_percent != self.current_duty_cycle: # Only bother updating if there is a change
             self.current_duty_cycle = duty_cycle_percent    
             print(f"Setting Duty Cycle to {self.current_duty_cycle}%")
-            # if code == 1:
             self.pwm_0.ChangeDutyCycle(self.current_duty_cycle)
             self.pwm_1.ChangeDutyCycle(self.current_duty_cycle)
-            # elif code == 4:
-            #     self.br_pwm.ChangeDutyCycle(self.current_duty_cycle)
-            #     self.fr_pwm.ChangeDutyCycle(self.current_duty_cycle)
         
     def setDirection(self, value):
         if math.fabs(value) < self.drift_offset:
             self.stop()
-        # elif code == 4 and math.fabs(value) < self.drift_offset:
-        #     self.stop_right()
         elif value < (-1 * self.drift_offset):
             self.forward()
         elif value > self.drift_offset:
             self.backward()
-        # elif code == 4 and value < (-1 * self.drift_offset):
-        #     self.right_side_dt_forward()
-        # elif code == 4 and value > self.drift_offset:
-        #     self.right_side_dt_backward()
     
     def _setup(self):
         # Left side drive train pins
@@ -173,29 +137,17 @@ class Motors:
         gpio.setup(self.MOTOR_PIN_BACK_A, gpio.OUT)
         gpio.setup(self.MOTOR_PIN_BACK_B, gpio.OUT)
         
-        # # Right side drive train pins
-        # gpio.setup(self.BR_MOTOR_PIN_A, gpio.OUT)
-        # gpio.setup(self.BR_MOTOR_PIN_B, gpio.OUT)
-        # gpio.setup(self.FR_MOTOR_PIN_A, gpio.OUT)
-        # gpio.setup(self.FR_MOTOR_PIN_B, gpio.OUT)
-        
         # PWM pins
         gpio.setup(self.PWM_PIN_0, gpio.OUT)
         gpio.setup(self.PWM_PIN_1, gpio.OUT)
-        # gpio.setup(self.BR_PWM1_1_PIN, gpio.OUT)
-        # gpio.setup(self.FR_PWM1_1_PIN, gpio.OUT)
         
         # Set PWM Frequency
         self.pwm_0 = gpio.PWM(self.PWM_PIN_0, self.pwm_freq)
         self.pwm_1 = gpio.PWM(self.PWM_PIN_1, self.pwm_freq)
-        # self.br_pwm = gpio.PWM(self.BR_PWM1_1_PIN, self.pwm_freq)
-        # self.fr_pwm = gpio.PWM(self.FR_PWM1_1_PIN, self.pwm_freq)
         
         # Set intiial duty cycle
         self.pwm_0.start(self.current_duty_cycle)
         self.pwm_1.start(self.current_duty_cycle)
-        # self.br_pwm.start(self.current_duty_cycle)
-        # self.fr_pwm.start(self.current_duty_cycle)
         
     def run(self):
         self._setup()
@@ -238,7 +190,7 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
     
     # left  side pins (in order): fpA (17), fpB (22), bpA (24), bpB (23), pw0 (12), pw1 (18)
-    # right side pins (in order): fpA (26), fpB (27), bpA (5),  bpB (6),  pw0 (13), pw1 (19)
+    # right side pins (in order): fpA (27), fpB (26), bpA (6),  bpB (5),  pw0 (13), pw1 (19)
     
     # Use thread safe queues as our method of IPC
     ctl_queue_left = Queue()
