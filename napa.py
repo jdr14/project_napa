@@ -1,7 +1,8 @@
 from multiprocessing import Process, Queue
 import RPi.GPIO as gpio
 from evdev import InputDevice, categorize, ecodes
-from time import sleep
+import time
+import threading
 import signal
 import asyncio
 import math
@@ -46,19 +47,28 @@ class Controller:
         
         # Find the device path. You might need to check /dev/input/event* for the correct one.
         self.controller = InputDevice('/dev/input/event4') # Replace X with the correct event number
-        sleep(2)
+        time.sleep(2)
         
         print(f"Successfully connected to {self.controller.name}")
         print(self.controller.phys)
         
     async def read_controller(self):
+    # def read_controller(self):
         async for event in self.controller.async_read_loop():
-            if event.type == ecodes.EV_ABS:
+            # await asyncio.sleep(0.25) # sleep for 250 ms
+            # event = self.controller.read_one()
+            if event and event.type == ecodes.EV_ABS:
                 # print(f"type = {event.type} | code = {event.code} | value = {event.value}")
                 self.ipc_queue.put([event.type, event.code, event.value])
+        # threading.Timer(0.1, self.read_controller).start()
+        # time.sleep(0.1)
             
     def controller_input(self):
         asyncio.run(self.read_controller())
+        # threading.Timer(0.25, self.read_controller).start()
+        # self.timerThread = threading.Thread(target=self.read_controller)
+        # self.timerThread.daemon = True
+        # self.timerThread.start()
 
 class Motors:
     def __init__(self, thread_safe_controller_queue):
@@ -68,6 +78,7 @@ class Motors:
         gpio.setmode(gpio.BCM)
         self.pwm_freq = 1000 # 1kHz PWM frequency
         self.drift_offset = 2000 # This accounts for the controller joystick drift/noise
+        self.duty_cycle_increment = 5 # 5% duty cycle increments 
         
         self.direction = "stop"
         self.current_duty_cycle = 0
@@ -95,42 +106,45 @@ class Motors:
         self.FL_PWM0_0_PIN = 18 # Pin 12
         self.FR_PWM1_1_PIN = 19 # Pin 35
 
-        gpio.setup(self.BL_PWM0_0_PIN, gpio.OUT) # Pin 11
-        gpio.setup(self.FL_PWM0_0_PIN, gpio.OUT) # Pin 15
+        gpio.setup(self.BL_PWM0_0_PIN, gpio.OUT) # Pin 32
+        gpio.setup(self.FL_PWM0_0_PIN, gpio.OUT) # Pin 12
         self.bl_pwm = gpio.PWM(self.BL_PWM0_0_PIN, self.pwm_freq)
         self.fl_pwm = gpio.PWM(self.FL_PWM0_0_PIN, self.pwm_freq)
+        print(f"Starting PWM pins at a duty cycle of {self.current_duty_cycle}")
         self.bl_pwm.start(self.current_duty_cycle)
         self.fl_pwm.start(self.current_duty_cycle)
 
     def forward(self):
-        gpio.output(self.FL_MOTOR_PIN_A, gpio.HIGH)
-        gpio.output(self.FL_MOTOR_PIN_B, gpio.LOW)
-        gpio.output(self.BL_MOTOR_PIN_A, gpio.HIGH)
-        gpio.output(self.BL_MOTOR_PIN_B, gpio.LOW)
-        
-    def backward(self):
         gpio.output(self.FL_MOTOR_PIN_A, gpio.LOW)
         gpio.output(self.FL_MOTOR_PIN_B, gpio.HIGH)
-        gpio.output(self.BL_MOTOR_PIN_A, gpio.LOW)
-        gpio.output(self.BL_MOTOR_PIN_B, gpio.HIGH)
+        # gpio.output(self.BL_MOTOR_PIN_A, gpio.HIGH)
+        # gpio.output(self.BL_MOTOR_PIN_B, gpio.LOW)
+        
+    def backward(self):
+        gpio.output(self.FL_MOTOR_PIN_A, gpio.HIGH)
+        gpio.output(self.FL_MOTOR_PIN_B, gpio.LOW)
+        # gpio.output(self.BL_MOTOR_PIN_A, gpio.LOW)
+        # gpio.output(self.BL_MOTOR_PIN_B, gpio.HIGH)
         
     def stop(self):
         gpio.output(self.FL_MOTOR_PIN_A, gpio.LOW)
         gpio.output(self.FL_MOTOR_PIN_B, gpio.LOW)
-        gpio.output(self.BL_MOTOR_PIN_A, gpio.LOW)
-        gpio.output(self.BL_MOTOR_PIN_B, gpio.LOW)
+        # gpio.output(self.BL_MOTOR_PIN_A, gpio.LOW)
+        # gpio.output(self.BL_MOTOR_PIN_B, gpio.LOW)
         
     def setSpeed(self, value):
         # Translate the raw joystick value to the 0-100% duty cycle for PWM control
-        if math.fabs(value) < 2000 and self.current_duty_cycle != 0: # Have a small range of buffer to account for joystick drift
+        if math.fabs(value) < self.drift_offset and self.current_duty_cycle != 0: # Have a small range of buffer to account for joystick drift
             print(f"Setting Duty Cycle to 0%")
             self.current_duty_cycle = 0
             self.bl_pwm.ChangeDutyCycle(self.current_duty_cycle)
             self.fl_pwm.ChangeDutyCycle(self.current_duty_cycle)
             return
-        duty_cycle_percent = int(math.floor( (math.fabs(math.fabs(value) - self.drift_offset) * 3.1) / 1000 ))
+        duty_cycle_percent = int(math.floor( (math.fabs(math.fabs(value) - self.drift_offset) * 3.15) / (1000 * self.duty_cycle_increment) )) * 5 + 5
         if duty_cycle_percent > 100:
             duty_cycle_percent = 100
+        if duty_cycle_percent < 10:
+            duty_cycle_percent = 0
         if duty_cycle_percent != self.current_duty_cycle:
             print(f"Setting Duty Cycle to {duty_cycle_percent}%")
             self.current_duty_cycle = duty_cycle_percent
@@ -138,7 +152,7 @@ class Motors:
             self.fl_pwm.ChangeDutyCycle(self.current_duty_cycle)
         
     def setDirection(self, value):
-        if math.fabs(value) < 2000 and self.direction != "stop":
+        if math.fabs(value) < self.drift_offset and self.direction != "stop":
             print("Stopping")
             self.direction = "stop"
             self.stop()
@@ -151,12 +165,31 @@ class Motors:
             self.direction = "backward"
             self.backward()
         
-    def run(self):
+    def run(self):    
+        eType, eCode, eValue = (None, None, None)
+            
+        def _mc_callback():
+            while True:
+                if eCode == 1:
+                    self.setDirection(eValue)
+                    self.setSpeed(eValue)
+                    time.sleep(0.1) # Delay for stability
+            
+        mc_worker = threading.Thread(target=_mc_callback)
+        mc_worker.daemon = True
+        mc_worker.start()
+            
         while True:
             eType, eCode, eValue = self.ipc_queue.get()
+        
+        # while True:
+            # eType, eCode, eValue = self.ipc_queue.get()
             # print(f"eType = {eType} | eCode = {eCode} | eValue = {eValue}")
-            self.setDirection(eValue)
-            self.setSpeed(eValue)
+            # if eCode == 1:
+            #     self.setDirection(eValue)
+            #     self.setSpeed(eValue)
+            #     # time.sleep(0.1) # Delay for stability
+
 
 """
 Handle signals and gracefully shutdown before exit
@@ -191,6 +224,7 @@ def main():
     motors = Motors(ctl_queue)
     # parent_conn, child_conn = Pipe()
     ctlProcess = Process(target=ctlr.controller_input)
+    # ctlProcess = Process(target=ctlr.read_controller)
     motorProcess = Process(target=motors.run)
     ctlProcess.start()
     procList.append(ctlProcess)
@@ -200,7 +234,7 @@ def main():
     # Keep main process going
     try:
         while True:
-            sleep(1)
+            time.sleep(1)
     except Exception as e:
         print(repr(e))
         signal_handler(None, None)
