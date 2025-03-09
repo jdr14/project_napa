@@ -101,13 +101,13 @@ class Motors:
         self.FL_PWM0_0_PIN = 18 # Pin 12
         self.FR_PWM1_1_PIN = 19 # Pin 35
         
-    def _left_side_dt_forward(self):
+    def left_side_dt_forward(self):
         gpio.output(self.FL_MOTOR_PIN_A, gpio.LOW)
         gpio.output(self.FL_MOTOR_PIN_B, gpio.HIGH)
         gpio.output(self.BL_MOTOR_PIN_A, gpio.LOW)
         gpio.output(self.BL_MOTOR_PIN_B, gpio.HIGH)
 
-    def _right_side_dt_forward(self):
+    def right_side_dt_forward(self):
         gpio.output(self.FR_MOTOR_PIN_A, gpio.HIGH)
         gpio.output(self.FR_MOTOR_PIN_B, gpio.LOW)
         gpio.output(self.BR_MOTOR_PIN_A, gpio.HIGH)
@@ -124,22 +124,6 @@ class Motors:
         gpio.output(self.FR_MOTOR_PIN_B, gpio.HIGH)
         gpio.output(self.BR_MOTOR_PIN_A, gpio.LOW)
         gpio.output(self.BR_MOTOR_PIN_B, gpio.HIGH)
-
-    def forward(self):
-        self._left_side_dt_forward()
-        self._right_side_dt_forward()
-        
-    def backward(self):
-        self._left_side_dt_backward()
-        self._right_side_dt_backward()
-        
-    def turnRight(self):
-        self._left_side_dt_forward()
-        self._right_side_dt_backward()
-        
-    def turnLeft(self):
-        self._left_side_dt_backward()
-        self._right_side_dt_forward()
         
     def stop_left(self):
         gpio.output(self.FL_MOTOR_PIN_A, gpio.LOW)
@@ -179,22 +163,17 @@ class Motors:
     def setDirection(self, code, value):
         if not code or not value: # Nonetype guard
             return
-        if code == 1 and math.fabs(value) < self.drift_offset:# and self.direction != "stop":
-            # self.direction = "stop"
+        if code == 1 and math.fabs(value) < self.drift_offset:
             self.stop_left()
         elif code == 4 and math.fabs(value) < self.drift_offset:
             self.stop_right()
-        elif code == 1 and value < (-1 * self.drift_offset):# and self.direction != "left_forward":
-            # self.direction = "left_forward"
-            self._left_side_dt_forward()
-        elif code == 1 and value > self.drift_offset:# and self.direction != "left_backward":
-            # self.direction = "left_backward"
+        elif code == 1 and value < (-1 * self.drift_offset):
+            self.left_side_dt_forward()
+        elif code == 1 and value > self.drift_offset:
             self._left_side_dt_backward()
-        elif code == 4 and value < (-1 * self.drift_offset):# and self.direction != "right_forward":
-            # self.direction = "right_forward"
-            self._right_side_dt_forward()
-        elif code == 4 and value > self.drift_offset:# and self.direction != "right_backward":
-            # self.direction = "right_backward"
+        elif code == 4 and value < (-1 * self.drift_offset):
+            self.right_side_dt_forward()
+        elif code == 4 and value > self.drift_offset:
             self._right_side_dt_backward()
     
     def _setup(self):
