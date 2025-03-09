@@ -133,53 +133,69 @@ class Motors:
         self._left_side_dt_backward()
         self._right_side_dt_backward()
         
-    def stop(self):
+    def turnRight(self):
+        self._left_side_dt_forward()
+        self._right_side_dt_backward()
+        
+    def turnLeft(self):
+        self._left_side_dt_backward()
+        self._right_side_dt_forward()
+        
+    def stop_left(self):
         gpio.output(self.FL_MOTOR_PIN_A, gpio.LOW)
         gpio.output(self.FL_MOTOR_PIN_B, gpio.LOW)
         gpio.output(self.BL_MOTOR_PIN_A, gpio.LOW)
         gpio.output(self.BL_MOTOR_PIN_B, gpio.LOW)
+        
+    def stop_right(self):
         gpio.output(self.FR_MOTOR_PIN_A, gpio.LOW)
         gpio.output(self.FR_MOTOR_PIN_B, gpio.LOW)
         gpio.output(self.BR_MOTOR_PIN_A, gpio.LOW)
         gpio.output(self.BR_MOTOR_PIN_B, gpio.LOW)
         
-    def setSpeed(self, value):
-        # Translate the raw joystick value to the 0-100% duty cycle for PWM control
+    def setSpeed(self, code, value):
+        if not code or not value:
+            return
         duty_cycle_percent = 0
-        if math.fabs(value) > self.drift_offset: # Have a small range of buffer to account for joystick drift
-            # print(f"Setting Duty Cycle to 0%")
-            # self.current_duty_cycle = 0
-            # self.bl_pwm.ChangeDutyCycle(self.current_duty_cycle)
-            # self.fl_pwm.ChangeDutyCycle(self.current_duty_cycle)
-            # return
-        # else:
+        # Have a small range of buffer to account for joystick drift (if it within this range, we consider the effective duty_cycle to be 0%)
+        if math.fabs(value) > self.drift_offset:
+            # Translate the raw joystick value to the 0-100% duty cycle for PWM control
             duty_cycle_percent = int(math.floor( (math.fabs(math.fabs(value) - self.drift_offset) * 3.15) / (1000 * self.duty_cycle_increment) )) * 5 + 5
             if duty_cycle_percent > 100:
                 duty_cycle_percent = 100
             elif duty_cycle_percent < 10:
                 duty_cycle_percent = 0
-        
-        if duty_cycle_percent != self.current_duty_cycle:
+                
+        if duty_cycle_percent != self.current_duty_cycle: # Only bother updating if there is a change
             self.current_duty_cycle = duty_cycle_percent    
             print(f"Setting Duty Cycle to {self.current_duty_cycle}%")
-            self.bl_pwm.ChangeDutyCycle(self.current_duty_cycle)
-            self.fl_pwm.ChangeDutyCycle(self.current_duty_cycle)
-            self.br_pwm.ChangeDutyCycle(self.current_duty_cycle)
-            self.fr_pwm.ChangeDutyCycle(self.current_duty_cycle)
+            if code == 1:
+                self.bl_pwm.ChangeDutyCycle(self.current_duty_cycle)
+                self.fl_pwm.ChangeDutyCycle(self.current_duty_cycle)
+            elif code == 4:
+                self.br_pwm.ChangeDutyCycle(self.current_duty_cycle)
+                self.fr_pwm.ChangeDutyCycle(self.current_duty_cycle)
         
-    def setDirection(self, value):
-        if math.fabs(value) < self.drift_offset and self.direction != "stop":
-            print("Stopping")
-            self.direction = "stop"
-            self.stop()
-        elif value < (-1 * self.drift_offset) and self.direction != "forward":
-            print("Moving Forward")
-            self.direction = "forward"
-            self.forward()
-        elif value > self.drift_offset and self.direction != "backward":
-            print("Moving Backward")
-            self.direction = "backward"
-            self.backward()
+    def setDirection(self, code, value):
+        if not code or not value: # Nonetype guard
+            return
+        if code == 1 and math.fabs(value) < self.drift_offset:# and self.direction != "stop":
+            # self.direction = "stop"
+            self.stop_left()
+        elif code == 4 and math.fabs(value) < self.drift_offset:
+            self.stop_right()
+        elif code == 1 and value < (-1 * self.drift_offset):# and self.direction != "left_forward":
+            # self.direction = "left_forward"
+            self._left_side_dt_forward()
+        elif code == 1 and value > self.drift_offset:# and self.direction != "left_backward":
+            # self.direction = "left_backward"
+            self._left_side_dt_backward()
+        elif code == 4 and value < (-1 * self.drift_offset):# and self.direction != "right_forward":
+            # self.direction = "right_forward"
+            self._right_side_dt_forward()
+        elif code == 4 and value > self.drift_offset:# and self.direction != "right_backward":
+            # self.direction = "right_backward"
+            self._right_side_dt_backward()
     
     def _setup(self):
         # Left side drive train pins
@@ -219,9 +235,9 @@ class Motors:
         
         def _mc_callback():
             while True:
-                if eCode == 1:
-                    self.setDirection(eValue)
-                    self.setSpeed(eValue)
+                if eCode == 1 or eCode == 4:
+                    self.setDirection(eCode, eValue)
+                    self.setSpeed(eCode, eValue)
                 time.sleep(0.1) # Delay for stability
             
         mc_worker = threading.Thread(target=_mc_callback)
@@ -230,6 +246,7 @@ class Motors:
             
         while True:
             eType, eCode, eValue = self.ipc_queue.get()
+            # print(f"eType = {eType} | eCode = {eCode} | eValue = {eValue}")
 
 """
 Handle signals and gracefully shutdown before exit
